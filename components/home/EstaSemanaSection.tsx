@@ -161,9 +161,10 @@ export function EstaSemanaSection({ hoy }: EstaSemanaSectionProps) {
                 height:          4,
                 borderRadius:    2,
                 backgroundColor: "#FF7D7D",
+                flexShrink:      0,
               }}
             />
-            <Text style={{ fontFamily: "Inter_400Regular", fontSize: 10, lineHeight: 10, color: "#888888" }}>
+            <Text style={{ fontFamily: "Inter_400Regular", fontSize: 10, lineHeight: 14, color: "#888888", flex: 1 }}>
               Día de precepto
             </Text>
           </View>

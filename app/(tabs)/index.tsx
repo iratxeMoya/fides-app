@@ -32,10 +32,11 @@ import { PreceptoCard }      from "@/components/home/PreceptoCard";
 import { IglesiaCard }       from "@/components/home/IglesiaCard";
 import { LecturaCard }       from "@/components/home/LecturaCard";
 import { EstaSemanaSection } from "@/components/home/EstaSemanaSection";
+import { VelaSection }       from "@/components/home/VelaSection";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
-const N_SECCIONES = 5;
+const N_SECCIONES = 6;
 const STAGGER_MS  = 130;
 const FADE_MS     = 480;
 
@@ -331,6 +332,11 @@ export default function HomeScreen() {
             cita={cita}
             citaCargando={citaCargando}
           />
+        </SeccionAnimada>
+
+        {/* ── 5. ENCIENDE UNA VELA ── */}
+        <SeccionAnimada anim={anims[5]}>
+          <VelaSection />
         </SeccionAnimada>
       </ScrollView>
     </SafeAreaView>

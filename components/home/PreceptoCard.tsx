@@ -45,7 +45,8 @@ export function PreceptoCard({ preceptoHoy, preceptosSemana }: PreceptoCardProps
             fontSize:      10,
             color:         "#FF7D7D",
             textTransform: "uppercase",
-            letterSpacing: 1.5,
+            letterSpacing: 0.8,
+            flex:          1,
           }}
         >
           Día de precepto

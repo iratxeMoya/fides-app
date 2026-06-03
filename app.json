@@ -18,10 +18,6 @@
       "bundleIdentifier": "com.fides.app"
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/icons/fides_icon.png",
-        "backgroundColor": "#222222"
-      },
       "package": "com.fides.app"
     },
     "web": {

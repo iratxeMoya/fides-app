@@ -1,9 +1,7 @@
 name: Build iOS IPA
 
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # Solo manual — desactivado en push hasta tener Apple Developer account
 
 jobs:
   build:
