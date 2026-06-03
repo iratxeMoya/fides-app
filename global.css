@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* El cambio en tailwind.config.js no invalida la caché CSS de NativeWind.
+   Estos overrides garantizan los colores correctos independientemente del caché. */
+.text-texto-tenue   { color: #888888; }
+.text-texto-secundario { color: #C0C0C0; }
