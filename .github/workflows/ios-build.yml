@@ -1,0 +1,50 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install Node dependencies
+      run: npm install
+
+    - name: Install CocoaPods
+      run: |
+        cd ios
+        pod install
+        cd ..
+
+    - name: Build Unsigned Xcode Project
+      run: |
+        xcodebuild -workspace ios/FidesApp.xcworkspace \
+                   -scheme FidesApp \
+                   -configuration Release \
+                   -sdk iphoneos \
+                   CODE_SIGNING_ALLOWED=NO \
+                   DerivedDataPath=build
+
+    - name: Package Payload folder
+      run: |
+        mkdir -p build/Payload
+        cp -R build/Build/Products/Release-iphoneos/*.app build/Payload/
+        cd build
+        zip -r fides.ipa Payload
+
+    - name: Upload IPA Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-ipa
+        path: build/fides.ipa

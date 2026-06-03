@@ -22,7 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // Anthropic Claude API — para citas inspiradoras (solo llamar desde backend en producción)
     anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
     eas: {
-      projectId: process.env.EAS_PROJECT_ID ?? "",
+      projectId: process.env.EAS_PROJECT_ID ?? "bfc111cc-eabb-4a7e-9051-a07ceefbc4c0",
     },
   },
 });

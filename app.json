@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "scheme": "fides",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icons/fides_icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
@@ -19,8 +19,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0A0A0A"
+        "foregroundImage": "./assets/icons/fides_icon.png",
+        "backgroundColor": "#222222"
       },
       "package": "com.fides.app"
     },
@@ -35,7 +35,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
+          "icon": "./assets/icons/fides_icon.png",
           "color": "#FF7D7D",
           "sounds": []
         }
@@ -43,6 +43,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "bfc111cc-eabb-4a7e-9051-a07ceefbc4c0"
+      }
     }
   }
 }
