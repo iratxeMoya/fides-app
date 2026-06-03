@@ -16,10 +16,13 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
 
     - name: Install Node dependencies
-      run: npm install
+      run: npm install --legacy-peer-deps
+
+    - name: Generate iOS native project
+      run: npx expo prebuild --platform ios --no-install
 
     - name: Install CocoaPods
       run: |
@@ -27,24 +30,35 @@ jobs:
         pod install
         cd ..
 
-    - name: Build Unsigned Xcode Project
+    - name: Detect workspace and scheme
+      id: detect
       run: |
-        xcodebuild -workspace ios/FidesApp.xcworkspace \
-                   -scheme FidesApp \
-                   -configuration Release \
-                   -sdk iphoneos \
-                   CODE_SIGNING_ALLOWED=NO \
-                   DerivedDataPath=build
+        WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -1)
+        SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+        echo "workspace=$WORKSPACE" >> $GITHUB_OUTPUT
+        echo "scheme=$SCHEME" >> $GITHUB_OUTPUT
 
-    - name: Package Payload folder
+    - name: Build unsigned .app
       run: |
-        mkdir -p build/Payload
-        cp -R build/Build/Products/Release-iphoneos/*.app build/Payload/
-        cd build
+        xcodebuild \
+          -workspace "${{ steps.detect.outputs.workspace }}" \
+          -scheme "${{ steps.detect.outputs.scheme }}" \
+          -configuration Release \
+          -sdk iphoneos \
+          -derivedDataPath build \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO
+
+    - name: Package as .ipa
+      run: |
+        APP=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -1)
+        mkdir -p Payload
+        cp -R "$APP" Payload/
         zip -r fides.ipa Payload
 
-    - name: Upload IPA Artifact
+    - name: Upload IPA artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ios-ipa
-        path: build/fides.ipa
+        name: fides-ios
+        path: fides.ipa
