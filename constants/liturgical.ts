@@ -111,7 +111,7 @@ function normalizeDate(d: Date): Date {
  * No incluye todos los domingos (que también son días de precepto universal)
  * ya que se presupone su tratamiento por separado.
  */
-function getDiasPreceptoDelAnio(anio: number): DiaPrecepto[] {
+export function getDiasPreceptoDelAnio(anio: number): DiaPrecepto[] {
   const pascua = calcularFechaPascua(anio);
 
   const ascension = new Date(pascua);

@@ -7,11 +7,18 @@ import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { useFontsLoaded } from "@/lib/hooks/useFontsLoaded";
+import { usePreferenciasStore } from "@/lib/store/preferenciasStore";
+import {
+  configurarHandlerNotificaciones,
+  inicializarNotificaciones,
+} from "@/lib/notifications/scheduling";
 
 SplashScreen.preventAutoHideAsync();
+configurarHandlerNotificaciones();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFontsLoaded();
+  const hasHydrated = usePreferenciasStore((s) => s._hasHydrated);
 
   useEffect(() => {
     // Hide splash after fonts load, on error, or after 3s fallback.
@@ -22,6 +29,11 @@ export default function RootLayout() {
     const timeout = setTimeout(() => SplashScreen.hideAsync(), 3000);
     return () => clearTimeout(timeout);
   }, [fontsLoaded, fontError]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    inicializarNotificaciones(usePreferenciasStore.getState()).catch(() => {});
+  }, [hasHydrated]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -45,6 +57,10 @@ export default function RootLayout() {
         />
         <Stack.Screen
           name="libro/[id]"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="acerca-de"
           options={{ headerShown: false, animation: "slide_from_right" }}
         />
       </Stack>

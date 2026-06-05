@@ -40,7 +40,7 @@ Católico practicante hispanohablante, 25–55 años, con smartphone. No necesar
 
 ---
 
-## Estado actual — v1.1
+## Estado actual — v1.3
 
 ### Pantallas
 
@@ -73,6 +73,15 @@ Pantalla de inmersión: texto completo y notas personales editables.
 #### Detalle de libro
 Ficha de libro recomendado con portada, autor, categoría, descripción y enlace de compra.
 
+#### Ajustes
+Cuarto tab. Dos secciones:
+
+- **Notificaciones** — Tres toggles: Ángelus (defecto 12:00), Día de precepto (defecto 18:00 del día anterior) y Lectura del día (defecto 08:00). Cada toggle, cuando está activado, muestra la hora en rojo presionable. Al pulsar la hora se abre el `HoraPicker` — un sheet propio con ruedas de horas y minutos en Cormorant Garamond, editables tanto con flechas como tecleando directamente. Al activar el primer toggle, si no hay permiso se solicita al sistema; si se deniega, el toggle vuelve a off y aparece un banner de aviso con enlace a los ajustes del sistema. Las preferencias (toggles + horas) persisten en AsyncStorage vía `preferenciasStore` (Zustand + `persist`). El scheduling real está implementado: Ángelus y Lectura usan trigger `DAILY`; Precepto programa ~16 alarmas individuales (`DATE`) para el día previo a cada solemnidad de los próximos 2 años. Al cambiar la hora o al arrancar la app se reprograman automáticamente.
+- **Acerca de** — Fila fija al pie de la pantalla (fuera del scroll). Abre la pantalla de contacto.
+
+#### Acerca de *(pantalla de Stack)*
+Pantalla accesible desde el tab Ajustes. Muestra nombre y email de la desarrolladora (email tappable, abre el cliente de correo), una card de invitación a enviar sugerencias en Cormorant itálico y la versión de la app leída en runtime desde `app.json` vía `expo-constants`.
+
 ### Lógica litúrgica
 Algoritmo de Meeus-Jones-Butcher para el cálculo de la Pascua. Determinación del tiempo litúrgico (Adviento, Navidad, Tiempo Ordinario, Cuaresma, Semana Santa, Pascua, Pentecostés) para cualquier fecha. Días de precepto hardcodeados para 2025–2026 con las fiestas propias del rito hispano (Ascensión el 17 de mayo, Corpus el 7 de junio).
 
@@ -86,6 +95,8 @@ El tipo `HorarioMisa` tiene tres flags opcionales:
 ### Persistencia local
 SQLite con Drizzle ORM. Tablas: `iglesias` (caché de iglesias con horarios completos), `lecturas_favoritas`, `lecturas_recomendadas`, `chat_mensajes`.
 
+**AsyncStorage** para preferencias de usuario (`preferenciasStore`): toggles de notificación y horas configuradas. Zustand `persist` con wrapper try/catch para evitar errores no capturados en la New Architecture.
+
 - Caché en memoria (TTL 1 h) para respuestas de red en la sesión activa.
 - Caché persistente en SQLite (TTL 24 h) para iglesias con horarios — permite consultas rápidas en recargas y funciona sin conexión.
 - Para IDs de misas.org, el caché de BD solo se considera válido si incluye misas en domingo; de lo contrario se relanza el fallback a buscarmisas.es.
@@ -94,17 +105,20 @@ SQLite con Drizzle ORM. Tablas: `iglesias` (caché de iglesias con horarios comp
 
 ## Ideas para v2.0
 
-### 1. Notificaciones litúrgicas personalizables
-El plugin de `expo-notifications` ya está configurado pero sin uso. Casos de uso naturales: recordatorio del Ángelus a las 12:00, aviso de misa en el día de precepto la tarde anterior, lectura del día a primera hora. El usuario elige qué quiere recibir y cuándo.
+### 1. ~~Página de gestión de usuario~~ ✓ *Implementado en v1.2.1*
+Tab "Ajustes" con estructura extensible: sección Notificaciones (toggles + horas configurables) y sección Acerca de fija al pie. Nuevas funcionalidades se añaden como nuevas secciones o filas dentro de `SeccionAjuste` / `FilaAjuste`.
 
-### 2. Calendario litúrgico anual completo
+### 2. ~~Notificaciones litúrgicas personalizables~~ ✓ *Implementado en v1.2.2*
+Scheduling real con `expo-notifications`: Ángelus y Lectura del día usan `SchedulableTriggerInputTypes.DAILY`; Día de precepto programa notificaciones individuales (`DATE`) para el día anterior a cada precepto de los próximos 2 años (~16 alarmas). Los identificadores fijos (`fides-angelus`, `fides-lectura`, `fides-precepto-YYYY-MM-DD`) permiten cancelar y reprogramar sin almacenar IDs. La inicialización se lanza en `_layout.tsx` una vez que Zustand termina de hidratar AsyncStorage (`_hasHydrated`).
+
+### 3. Calendario litúrgico anual completo
 Vista de calendario mensual con todas las solemnidades, fiestas, memorias obligatorias y memorias libres. Colores litúrgicos por día. Tap en cualquier fecha para ver la lectura del evangelio de ese día (retroactivo y futuro). Útil para planificar retiros, preparar catequesis, seguir el año litúrgico con perspectiva.
 
-### 3. Biblia completa navegable
+### 4. Biblia completa navegable
 Acceso a todos los libros de la Biblia (incluidos deuterocanónicos, ya soportados por la API actual) con búsqueda por referencia o por texto. Posibilidad de guardar versículos favoritos y añadirlos a las notas personales de cualquier lectura guardada. La infraestructura de `biblia.ts` ya tiene el mapping completo de libros.
 
-### 4. Integración de IA con NVIDIA NIM
+### 5. Integración de IA con NVIDIA NIM
 Chat de reflexión sobre la lectura del día y recomendaciones de lecturas bíblicas específicas contextualizadas en el evangelio de cada jornada. El proveedor sería NVIDIA NIM en lugar de Claude, manteniendo la misma interfaz de streaming ya definida en `lib/api/chat.ts`. Las recomendaciones combinarían el texto del evangelio del día, el tiempo litúrgico calculado y el historial de lecturas guardadas del usuario para personalizar las sugerencias.
 
-### 5. Comunidad *(v3.0)*
+### 6. Comunidad *(v3.0)*
 Registro y login de usuarios. Blog general de comunidad más subblogs temáticos o parroquiales abiertos al público — cualquiera puede unirse a uno o varios. Moderación automática por IA que filtra mensajes hirientes, desinformación y malas praxis antes de la publicación. Cada subforo cuenta además con un moderador humano como último recurso. La identidad de la plataforma es la misma que la app: recogida, sin engagement artificial, orientada a la reflexión compartida.

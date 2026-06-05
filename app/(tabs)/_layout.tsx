@@ -7,6 +7,7 @@ const TABS = [
   { name: "index",   label: "Inicio",   icon: "home"        },
   { name: "mapa",    label: "Iglesias", icon: "location"    },
   { name: "lectura", label: "Lectura",  icon: "book"        },
+  { name: "ajustes", label: "Ajustes",  icon: "settings"    },
 ] as const;
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
@@ -79,6 +80,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index"   options={{ title: "Inicio"   }} />
       <Tabs.Screen name="mapa"    options={{ title: "Iglesias" }} />
       <Tabs.Screen name="lectura" options={{ title: "Lectura"  }} />
+      <Tabs.Screen name="ajustes" options={{ title: "Ajustes"  }} />
     </Tabs>
   );
 }
