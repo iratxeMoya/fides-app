@@ -37,6 +37,7 @@ export function VelaSection() {
             fontFamily: "CormorantGaramond_600SemiBold",
             fontSize:   18,
             color:      "#FFFFFF",
+            textAlign:  "center",
             marginBottom: 6,
           }}
         >
@@ -59,32 +60,33 @@ export function VelaSection() {
           al mantenimiento de la app.
         </Text>
 
-        <Pressable
-          onPress={abrirSheet}
-          style={{
-            borderWidth:   1,
-            borderColor:   "rgba(255,125,125,0.3)",
-            backgroundColor: "rgba(255,125,125,0.08)",
-            borderRadius:  20,
-            paddingVertical:   8,
-            paddingHorizontal: 20,
-            flexDirection: "row",
-            alignItems:    "center",
-            gap:           6,
-          }}
-        >
-          <Ionicons name="flame-outline" size={14} color="#FF7D7D" />
-          <Text
+        <View style={{ flexDirection: "row", justifyContent: "center" }}>
+          <Pressable
+            onPress={abrirSheet}
             style={{
-              fontFamily: "Inter_500Medium",
-              fontSize:   13,
-              color:      "#FF7D7D",
-              flexShrink: 0,
+              borderWidth:     1,
+              borderColor:     "rgba(255,125,125,0.3)",
+              backgroundColor: "rgba(255,125,125,0.08)",
+              borderRadius:    20,
+              paddingVertical:   8,
+              paddingHorizontal: 20,
+              flexDirection:   "row",
+              alignItems:      "center",
+              gap:             6,
             }}
           >
-            Encender una vela
-          </Text>
-        </Pressable>
+            <Ionicons name="flame-outline" size={14} color="#FF7D7D" />
+            <Text
+              style={{
+                fontFamily: "Inter_500Medium",
+                fontSize:   13,
+                color:      "#FF7D7D",
+              }}
+            >
+              Encender una vela
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* ── Bottom Sheet ── */}
