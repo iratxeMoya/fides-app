@@ -8,6 +8,16 @@ export type HorarioMisa = {
   dia: string;
   /** Formato "HH:MM" — ej. ["08:00", "10:00", "12:00", "19:30"] */
   horas: string[];
+  /**
+   * true cuando el horario se infirió de un rango opening_hours (no de service_times exacto).
+   * La UI puede mostrar "horario estimado" en este caso.
+   */
+  inferido?: boolean;
+  /**
+   * true para la misa vespertina del sábado que anticipa el precepto dominical
+   * (misas.org day=7). Permite distinguirla de las misas ordinarias del sábado.
+   */
+  esVigilia?: boolean;
 };
 
 export type CategoriaLectura =

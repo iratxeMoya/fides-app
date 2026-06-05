@@ -12,11 +12,11 @@ export type { LecturaDelDia } from "./biblia";
 export {
   searchChurchesNearby,
   searchChurchesByQuery,
+  searchChurchesMisasOrg,
   getChurchDetails,
-  parseOpeningHoursToHorariosMisa,
-  buildPhotoUrl,
+  parseOsmOpeningHours,
 } from "./iglesias";
-export type { IglesiaBusqueda, IglesiaDetalle } from "./iglesias";
+export type { IglesiaBusqueda, IglesiaDetalle, IglesiaConHorarios } from "./iglesias";
 
 // ─── Geocoding ────────────────────────────────────────────────────────────────
 export {

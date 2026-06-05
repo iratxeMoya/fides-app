@@ -11,6 +11,13 @@ import {
   overpassDetailResponseFixture,
 } from "../fixtures/overpassFixture";
 
+// La BD no está disponible en el entorno Jest — mockeamos las queries de iglesias
+jest.mock("@/lib/db/client", () => ({ db: {} }));
+jest.mock("@/lib/db/queries", () => ({
+  saveIglesia:    jest.fn().mockResolvedValue(""),
+  getIglesiaById: jest.fn().mockResolvedValue(null),
+}));
+
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 const mockFetch = jest.fn();

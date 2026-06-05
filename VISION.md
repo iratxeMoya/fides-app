@@ -40,7 +40,7 @@ Católico practicante hispanohablante, 25–55 años, con smartphone. No necesar
 
 ---
 
-## Estado actual — v1.0
+## Estado actual — v1.1
 
 ### Pantallas
 
@@ -50,12 +50,16 @@ Pantalla principal con scroll vertical y animaciones en cascada. Seis secciones:
 1. **Header litúrgico** — Título "FIDES" en Cormorant + fecha y tiempo litúrgico del día ("Domingo, 3 de junio · Tiempo Ordinario").
 2. **Esta semana** — Grid horizontal de 7 días (lunes a domingo) con indicadores de día de precepto en rojo. El día actual aparece resaltado; los pasados, atenuados.
 3. **Card de precepto** *(condicional)* — Aparece si hay un día de precepto hoy o en lo que queda de semana. Muestra la fiesta y la obligación.
-4. **Card de iglesia cercana** — Iglesia más próxima con distancia en km y hora de la próxima misa hoy. Usa geolocalización del dispositivo + OpenStreetMap.
+4. **Card de iglesia cercana** — Iglesia más próxima con distancia en km y hora de la próxima misa hoy. Usa geolocalización del dispositivo + misas.org.
 5. **Card de lectura del día** — Evangelio del día con referencia bíblica, extracto de 180 caracteres, color litúrgico y una frase contemplativa generada por IA (Claude Haiku). CTA a la pantalla de lectura completa.
 6. **Enciende una vela** — Sección de donación voluntaria vía Bizum. Abre un bottom sheet con el número, botón de compartir y descripción.
 
 #### Mapa de iglesias
-Mapa interactivo oscuro (MapLibre + CARTO) centrado en la ubicación del usuario. Bottom sheet con lista de iglesias cercanas en un radio de 5 km. Búsqueda por texto. La iglesia seleccionada se resalta en el mapa. Todos los datos vienen de OpenStreetMap (sin API key, sin coste).
+Mapa interactivo oscuro (MapLibre + CARTO) centrado en la ubicación del usuario. Bottom sheet con lista de iglesias cercanas en un radio de 5 km. Búsqueda por texto (Nominatim + OSM REST API). La iglesia seleccionada se resalta en el mapa y muestra el horario semanal completo.
+
+La fuente primaria de horarios es **misas.org** (`/api/parishsearch`). Para obtener el calendario completo — el API filtra por día de la semana del `date` pasado — se hacen **7 llamadas paralelas** (una por cada día de la semana siguiente) y se fusionan los resultados, deduplicando por `(hora, días)`. El resultado es el horario semanal completo desde la carga inicial, sin necesidad de consultas adicionales al seleccionar una iglesia.
+
+Cuando una iglesia no tiene domingo en misas.org, se activa un fallback a **buscarmisas.es**: primero se prueban slugs directos derivados del nombre; si fallan, se descarga la página de ciudad y se busca la iglesia por solapamiento de palabras significativas.
 
 #### Lectura
 Tres pestañas:
@@ -72,8 +76,19 @@ Ficha de libro recomendado con portada, autor, categoría, descripción y enlace
 ### Lógica litúrgica
 Algoritmo de Meeus-Jones-Butcher para el cálculo de la Pascua. Determinación del tiempo litúrgico (Adviento, Navidad, Tiempo Ordinario, Cuaresma, Semana Santa, Pascua, Pentecostés) para cualquier fecha. Días de precepto hardcodeados para 2025–2026 con las fiestas propias del rito hispano (Ascensión el 17 de mayo, Corpus el 7 de junio).
 
+### Horarios de misa — modelo de datos
+El tipo `HorarioMisa` tiene tres flags opcionales:
+
+- `esVigilia: true` — misa del sábado vespertino que anticipa el precepto dominical (misas.org día 7). Se muestra como sábado pero computa para el domingo litúrgico.
+- `inferido: true` — horario estimado calculado a partir de `opening_hours` de OSM (no de `service_times` ni de misas.org). La UI puede señalarlo como aproximado.
+- `esVigilia` y `inferido` pueden coexistir en el mismo array para el mismo `dia`, ya que `IglesiaListCard` combina todas las entradas del día con `filter().flatMap()`.
+
 ### Persistencia local
-SQLite con Drizzle ORM. Tablas: `iglesias` (caché de iglesias buscadas), `lecturas_favoritas`, `lecturas_recomendadas`, `chat_mensajes`. Cache en memoria con TTL (5 min para iglesias, 24h para lecturas).
+SQLite con Drizzle ORM. Tablas: `iglesias` (caché de iglesias con horarios completos), `lecturas_favoritas`, `lecturas_recomendadas`, `chat_mensajes`.
+
+- Caché en memoria (TTL 1 h) para respuestas de red en la sesión activa.
+- Caché persistente en SQLite (TTL 24 h) para iglesias con horarios — permite consultas rápidas en recargas y funciona sin conexión.
+- Para IDs de misas.org, el caché de BD solo se considera válido si incluye misas en domingo; de lo contrario se relanza el fallback a buscarmisas.es.
 
 ---
 

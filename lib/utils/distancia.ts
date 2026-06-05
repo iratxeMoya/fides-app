@@ -24,21 +24,39 @@ const DIAS_SEMANA = [
   "Jueves",  "Viernes", "Sábado",
 ] as const;
 
-/** Dado un array de HorarioMisa, devuelve la hora más próxima a ahora (o null) */
-export function proximaMisaHoy(
-  horarios: { dia: string; horas: string[] }[]
-): string | null {
+type HorarioEntry = { dia: string; horas: string[]; esVigilia?: boolean };
+
+/**
+ * Dado un array de HorarioMisa, devuelve la hora más próxima a ahora (o null).
+ * En sábado incluye las Vigilias (anticipación del precepto dominical).
+ * En domingo incluye las Vigilias del sábado anterior si todavía hay misas hoy.
+ */
+export function proximaMisaHoy(horarios: HorarioEntry[]): string | null {
   const ahora     = new Date();
   const diaHoy    = DIAS_SEMANA[ahora.getDay()];
   const minutosYa = ahora.getHours() * 60 + ahora.getMinutes();
 
-  const horarioHoy = horarios.find((h) => h.dia === diaHoy);
-  if (!horarioHoy?.horas.length) return null;
+  // Recoger TODAS las entradas del día de hoy (puede haber varias: normal + vigilia)
+  const entradasHoy = horarios.filter((h) => h.dia === diaHoy);
+  if (!entradasHoy.length) return null;
+
+  const todasLasHoras = entradasHoy
+    .flatMap((e) => e.horas)
+    .sort();
 
   return (
-    horarioHoy.horas.find((hora) => {
+    todasLasHoras.find((hora) => {
       const [h, m] = hora.split(":").map(Number);
       return h * 60 + m > minutosYa;
     }) ?? null
   );
+}
+
+/**
+ * Devuelve true si los horarios incluyen una Vigilia del sábado,
+ * útil para mostrar "Vigilia del Domingo" en la UI.
+ */
+export function tieneVigiliaHoy(horarios: HorarioEntry[]): boolean {
+  const diaHoy = DIAS_SEMANA[new Date().getDay()];
+  return horarios.some((h) => h.dia === diaHoy && h.esVigilia === true);
 }

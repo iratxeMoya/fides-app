@@ -159,7 +159,7 @@ export default function MapaScreen() {
       const top = base.slice(0, MAX_DETAIL);
 
       const resultados = await Promise.allSettled(
-        top.map((ig) => getChurchDetails(ig.id, ig.lat, ig.lng))
+        top.map((ig) => getChurchDetails(ig.id, ig.lat, ig.lng, ig.nombre))
       );
 
       setIglesias((prev) => {
@@ -211,12 +211,17 @@ export default function MapaScreen() {
 
       const base: IglesiaMapaItem[] = resultado.data
         .filter((ig) => distanciaKm(coords.lat, coords.lng, ig.lat, ig.lng) <= RADIO_KM)
-        .map((ig) => ({
-          ...ig,
-          distanciaKm:      distanciaKm(coords.lat, coords.lng, ig.lat, ig.lng),
-          proximaMisa:      proximaMisaHoy(ig.horarios),
-          detallesCargados: true,
-        }))
+        .map((ig) => {
+          // Si misas.org no tiene ninguna misa en domingo, los horarios están incompletos.
+          // Marcamos detallesCargados:false para que al seleccionarla se consulte buscarmisas.es.
+          const tieneDomingo = ig.horarios.some((h) => h.dia === "Domingo");
+          return {
+            ...ig,
+            distanciaKm:      distanciaKm(coords.lat, coords.lng, ig.lat, ig.lng),
+            proximaMisa:      proximaMisaHoy(ig.horarios),
+            detallesCargados: tieneDomingo,
+          };
+        })
         .sort((a, b) => a.distanciaKm - b.distanciaKm);
 
       setIglesias(base);
@@ -400,15 +405,21 @@ export default function MapaScreen() {
       sheetRef.current?.snapToIndex(1);
 
       if (!iglesia.detallesCargados) {
-        const result = await getChurchDetails(iglesia.id, iglesia.lat, iglesia.lng);
+        const result = await getChurchDetails(iglesia.id, iglesia.lat, iglesia.lng, iglesia.nombre);
         setIglesias((prev) =>
           prev.map((ig) => {
             if (ig.id !== iglesia.id) return ig;
-            if (result.ok) {
+            if (result.ok && result.data.horarios.length > 0) {
+              // Mezclar: conservar días de misas.org + añadir días que solo tiene buscarmisas.es
+              const diasExistentes = new Set(ig.horarios.map((h) => h.dia));
+              const horariosMezclados = [
+                ...ig.horarios,
+                ...result.data.horarios.filter((h) => !diasExistentes.has(h.dia)),
+              ];
               return {
                 ...ig,
-                horarios:         result.data.horarios,
-                proximaMisa:      proximaMisaHoy(result.data.horarios),
+                horarios:         horariosMezclados,
+                proximaMisa:      proximaMisaHoy(horariosMezclados),
                 detallesCargados: true,
               };
             }

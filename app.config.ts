@@ -3,10 +3,17 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
 // app.config.ts extiende app.json y añade las claves de entorno.
 // Las variables de proceso se inyectan en build-time mediante un .env local
 // (desarrollo) o mediante EAS Secrets (producción).
+
+const IS_DEV = process.env.APP_VARIANT === "development";
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "Fides",
+  name: IS_DEV ? "Fides (dev)" : "Fides",
   slug: "fides-app",
+  android: {
+    ...config.android,
+    package: IS_DEV ? "com.fides.app.dev" : "com.fides.app",
+  },
   ios: {
     ...config.ios,
     infoPlist: {

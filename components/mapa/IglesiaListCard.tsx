@@ -43,7 +43,7 @@ const ABREV: Record<string, string> = {
 
 function getHorariosHoy(horarios: HorarioMisa[]): string[] {
   const hoy = DIAS_SEMANA[new Date().getDay()];
-  return horarios.find((h) => h.dia === hoy)?.horas ?? [];
+  return [...new Set(horarios.filter((h) => h.dia === hoy).flatMap((h) => h.horas))].sort();
 }
 
 // ─── Chips de horas (vista compacta de hoy) ──────────────────────────────────
@@ -123,7 +123,7 @@ function HorarioSemana({ horarios }: { horarios: HorarioMisa[] }) {
       </Text>
 
       {ORDEN_DIAS.map((dia) => {
-        const horas  = horarios.find((h) => h.dia === dia)?.horas ?? [];
+        const horas  = [...new Set(horarios.filter((h) => h.dia === dia).flatMap((h) => h.horas))].sort();
         const esHoy  = dia === hoyNombre;
 
         return (
