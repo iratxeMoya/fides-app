@@ -18,6 +18,8 @@ const URL_HELLOAO = "https://bible.helloao.org/api/spa_blm";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
+export type Versiculo = { numero: number; texto: string };
+
 export type LecturaDelDia = {
   /** Nombre litúrgico del tiempo — "Tiempo de Pascua" */
   titulo: string;
@@ -242,6 +244,41 @@ export async function getLecturaDelDia(
     apiCache.set(cacheKey, lectura, TTL_24H);
     return lectura;
   }, "getLecturaDelDia");
+}
+
+// ─── getCapitulo ─────────────────────────────────────────────────────────────
+
+/**
+ * Devuelve todos los versículos de un capítulo bíblico.
+ *
+ * @param osis     — Código OSIS del libro ("GEN", "MAT", "PSA", …)
+ * @param capitulo — Número de capítulo (1-based)
+ */
+export async function getCapitulo(
+  osis: string,
+  capitulo: number
+): Promise<Result<Versiculo[]>> {
+  const cacheKey = `capitulo:${osis}:${capitulo}`;
+  const cached = apiCache.get<Versiculo[]>(cacheKey);
+  if (cached) return ok(cached);
+
+  return tryCatch(async () => {
+    const res = await fetch(`${URL_HELLOAO}/${osis}/${capitulo}.json`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) throw new Error(`API respondió ${res.status}`);
+    const data = await res.json();
+    const content: HelloaoVerse[] = data.chapter?.content ?? [];
+    const versiculos: Versiculo[] = content
+      .filter((v) => v.type === "verse")
+      .map((v) => ({
+        numero: v.number,
+        texto: v.content.map(itemToText).join(" ").trim(),
+      }));
+    if (versiculos.length === 0) throw new Error("El capítulo no contiene versículos");
+    apiCache.set(cacheKey, versiculos, TTL_1H);
+    return versiculos;
+  }, "getCapitulo");
 }
 
 // ─── getBusquedaPasaje ────────────────────────────────────────────────────────

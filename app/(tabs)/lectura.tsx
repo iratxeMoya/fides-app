@@ -7,10 +7,11 @@ import { getLecturasFavoritas }    from "@/lib/db/queries";
 import { LecturaDelDiaTab }        from "@/components/lectura/LecturaDelDiaTab";
 import { LecturasRecomendadasTab } from "@/components/lectura/LecturasRecomendadasTab";
 import { GuardadosTab }            from "@/components/lectura/GuardadosTab";
+import { BibliaTab }               from "@/components/lectura/BibliaTab";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-type Tab = "lecturas" | "recomendadas" | "guardados";
+type Tab = "lecturas" | "recomendadas" | "guardados" | "biblia";
 
 // ─── Tab switcher ─────────────────────────────────────────────────────────────
 
@@ -22,9 +23,10 @@ function TabHeader({
   onChange:  (t: Tab) => void;
 }) {
   const tabs: { key: Tab; label: string }[] = [
-    { key: "lecturas",     label: "Del día"       },
-    { key: "recomendadas", label: "Recomendadas"  },
-    { key: "guardados",    label: "Guardados"     },
+    { key: "lecturas",     label: "Del día"   },
+    { key: "recomendadas", label: "Libros"    },
+    { key: "guardados",    label: "Guardados" },
+    { key: "biblia",       label: "Biblia"    },
   ];
 
   return (
@@ -74,6 +76,7 @@ function TabHeader({
                   }}
                 >
                   <Text
+                    numberOfLines={1}
                     style={{
                       fontFamily: "Inter_500Medium",
                       fontSize:   12,
@@ -149,8 +152,10 @@ export default function LecturaScreen() {
         />
       ) : tabActivo === "recomendadas" ? (
         <LecturasRecomendadasTab />
+      ) : tabActivo === "guardados" ? (
+        <GuardadosTab active={true} />
       ) : (
-        <GuardadosTab active={tabActivo === "guardados"} />
+        <BibliaTab />
       )}
     </SafeAreaView>
   );

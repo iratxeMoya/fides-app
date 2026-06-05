@@ -120,8 +120,11 @@ Pantalla `app/calendario.tsx` accesible desde el CTA "Ver calendario →" en la 
 ### 4. Biblia completa navegable
 Acceso a todos los libros de la Biblia (incluidos deuterocanónicos, ya soportados por la API actual) con búsqueda por referencia o por texto. Posibilidad de guardar versículos favoritos y añadirlos a las notas personales de cualquier lectura guardada. La infraestructura de `biblia.ts` ya tiene el mapping completo de libros.
 
-### 5. Integración de IA con NVIDIA NIM
+### 5. Mas informacion sobre iglesias
+En el mapa, al hacer chick en una iglesia (ya sea en el listado o en el mapa), actualmente se expande para enseñar todos los horarios. Quiero que debajo del todo tenga un "Mas informacion ->" que abra una pantalla nueva con toda la informacion de la iglesia: Nombre, direccion, [NUEVO] foto de la iglesia, horarios de misa, [NUEVO] horarios de hora santa (si se conoce horarios), [NUEVO] confesiones (si se conoce horarios) 
+
+### 6. Integración de IA con NVIDIA NIM
 Chat de reflexión sobre la lectura del día y recomendaciones de lecturas bíblicas específicas contextualizadas en el evangelio de cada jornada. El proveedor sería NVIDIA NIM en lugar de Claude, manteniendo la misma interfaz de streaming ya definida en `lib/api/chat.ts`. Las recomendaciones combinarían el texto del evangelio del día, el tiempo litúrgico calculado y el historial de lecturas guardadas del usuario para personalizar las sugerencias.
 
-### 6. Comunidad *(v3.0)*
+### 7. Comunidad *(v3.0)*
 Registro y login de usuarios. Blog general de comunidad más subblogs temáticos o parroquiales abiertos al público — cualquiera puede unirse a uno o varios. Moderación automática por IA que filtra mensajes hirientes, desinformación y malas praxis antes de la publicación. Cada subforo cuenta además con un moderador humano como último recurso. La identidad de la plataforma es la misma que la app: recogida, sin engagement artificial, orientada a la reflexión compartida.
