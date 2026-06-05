@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, Alert, Linking } from "react-native";
 import { useState } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { Ionicons } from "@expo/vector-icons";
@@ -103,33 +103,22 @@ export default function AjustesScreen() {
   const sinPermiso = permisoNotificaciones === "denied";
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#0A0A0A" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#0A0A0A" }} edges={["top"]}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: insets.top + 24, paddingBottom: 16 }}
+        contentContainerStyle={{ paddingBottom: 16 }}
       >
-        {/* Header */}
-        <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+        {/* Header — className idénticos a HomeHeader */}
+        <View className="pt-2 pb-6" style={{ paddingHorizontal: 20 }}>
           <Text
-            style={{
-              fontFamily: "CormorantGaramond_300Light_Italic",
-              fontSize: 52,
-              letterSpacing: 6,
-              color: "#FFFFFF",
-              lineHeight: 56,
-            }}
+            className="text-6xl font-cormorant-light-italic tracking-widest"
+            style={{ letterSpacing: 8, color: "#FFFFFF" }}
           >
             FIDES
           </Text>
           <Text
-            style={{
-              fontFamily: "Inter_500Medium",
-              fontSize: 11,
-              letterSpacing: 1.5,
-              color: "#888888",
-              textTransform: "uppercase",
-              marginTop: 4,
-            }}
+            className="text-xs font-inter-medium tracking-widest uppercase mt-1"
+            style={{ color: "#888888" }}
           >
             Configuración
           </Text>
@@ -244,6 +233,6 @@ export default function AjustesScreen() {
           onCancelar={() => setPickerConfig(null)}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }

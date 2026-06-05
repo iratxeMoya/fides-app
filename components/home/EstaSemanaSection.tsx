@@ -1,6 +1,10 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, Pressable } from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { isPrecept } from "@/constants/liturgical";
+
+const ACCENT = "#FF7D7D";
 
 // Lunes = 0 … Domingo = 6  (orden europeo)
 const DIA_ABREV = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
@@ -111,6 +115,7 @@ type EstaSemanaSectionProps = {
 };
 
 export function EstaSemanaSection({ hoy }: EstaSemanaSectionProps) {
+  const router = useRouter();
   const dias = getDiasSemana(hoy);
 
   return (
@@ -150,9 +155,9 @@ export function EstaSemanaSection({ hoy }: EstaSemanaSectionProps) {
           ))}
         </View>
 
-        {/* Leyenda */}
+        {/* Leyenda + CTA */}
         <View
-          style={{ flexDirection: "row", alignItems: "center", marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: "#2A2A2A" }}
+          style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: "#2A2A2A" }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <View
@@ -160,14 +165,24 @@ export function EstaSemanaSection({ hoy }: EstaSemanaSectionProps) {
                 width:           4,
                 height:          4,
                 borderRadius:    2,
-                backgroundColor: "#FF7D7D",
+                backgroundColor: ACCENT,
                 flexShrink:      0,
               }}
             />
-            <Text style={{ fontFamily: "Inter_400Regular", fontSize: 10, lineHeight: 14, color: "#888888", flex: 1 }}>
+            <Text style={{ fontFamily: "Inter_400Regular", fontSize: 10, lineHeight: 14, color: "#888888" }}>
               Día de precepto
             </Text>
           </View>
+          <Pressable
+            onPress={() => router.push("/calendario")}
+            style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
+            android_ripple={null}
+          >
+            <Text style={{ fontFamily: "Inter_400Regular", fontSize: 11, color: ACCENT }}>
+              Ver calendario
+            </Text>
+            <Ionicons name="chevron-forward" size={12} color={ACCENT} />
+          </Pressable>
         </View>
       </View>
     </View>

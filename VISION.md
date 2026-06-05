@@ -40,7 +40,7 @@ Católico practicante hispanohablante, 25–55 años, con smartphone. No necesar
 
 ---
 
-## Estado actual — v1.3
+## Estado actual — v1.2.3
 
 ### Pantallas
 
@@ -48,7 +48,7 @@ Católico practicante hispanohablante, 25–55 años, con smartphone. No necesar
 Pantalla principal con scroll vertical y animaciones en cascada. Seis secciones:
 
 1. **Header litúrgico** — Título "FIDES" en Cormorant + fecha y tiempo litúrgico del día ("Domingo, 3 de junio · Tiempo Ordinario").
-2. **Esta semana** — Grid horizontal de 7 días (lunes a domingo) con indicadores de día de precepto en rojo. El día actual aparece resaltado; los pasados, atenuados.
+2. **Esta semana** — Grid horizontal de 7 días (lunes a domingo) con indicadores de día de precepto en rojo. El día actual aparece resaltado; los pasados, atenuados. CTA "Ver calendario →" que abre el calendario litúrgico anual.
 3. **Card de precepto** *(condicional)* — Aparece si hay un día de precepto hoy o en lo que queda de semana. Muestra la fiesta y la obligación.
 4. **Card de iglesia cercana** — Iglesia más próxima con distancia en km y hora de la próxima misa hoy. Usa geolocalización del dispositivo + misas.org.
 5. **Card de lectura del día** — Evangelio del día con referencia bíblica, extracto de 180 caracteres, color litúrgico y una frase contemplativa generada por IA (Claude Haiku). CTA a la pantalla de lectura completa.
@@ -78,6 +78,9 @@ Cuarto tab. Dos secciones:
 
 - **Notificaciones** — Tres toggles: Ángelus (defecto 12:00), Día de precepto (defecto 18:00 del día anterior) y Lectura del día (defecto 08:00). Cada toggle, cuando está activado, muestra la hora en rojo presionable. Al pulsar la hora se abre el `HoraPicker` — un sheet propio con ruedas de horas y minutos en Cormorant Garamond, editables tanto con flechas como tecleando directamente. Al activar el primer toggle, si no hay permiso se solicita al sistema; si se deniega, el toggle vuelve a off y aparece un banner de aviso con enlace a los ajustes del sistema. Las preferencias (toggles + horas) persisten en AsyncStorage vía `preferenciasStore` (Zustand + `persist`). El scheduling real está implementado: Ángelus y Lectura usan trigger `DAILY`; Precepto programa ~16 alarmas individuales (`DATE`) para el día previo a cada solemnidad de los próximos 2 años. Al cambiar la hora o al arrancar la app se reprograman automáticamente.
 - **Acerca de** — Fila fija al pie de la pantalla (fuera del scroll). Abre la pantalla de contacto.
+
+#### Calendario litúrgico *(pantalla de Stack)*
+Pantalla accesible desde el CTA de la sección "Esta semana". Muestra los 12 meses del año seleccionado en un scroll vertical. Cada día es un círculo de 32px con fondo teñido por tiempo litúrgico (verde oscuro = Ordinario, morado = Adviento/Cuaresma, dorado = Navidad/Pascua, rojo oscuro = Semana Santa/Pentecostés). Los días de precepto llevan un borde rojo semitransparente; el día actual se rellena en `#FF7D7D`. Los días pasados aparecen al 45% de opacidad. El domingo (columna D) se muestra en blanco más brillante. Selector de año `< 2026 >` en el header. Leyenda de colores al pie del scroll. El tiempo litúrgico de los 365 días se precomputa con `useMemo` (solo recalcula al cambiar de año); los días de precepto también con `useMemo` en un `Set`.
 
 #### Acerca de *(pantalla de Stack)*
 Pantalla accesible desde el tab Ajustes. Muestra nombre y email de la desarrolladora (email tappable, abre el cliente de correo), una card de invitación a enviar sugerencias en Cormorant itálico y la versión de la app leída en runtime desde `app.json` vía `expo-constants`.
@@ -111,8 +114,8 @@ Tab "Ajustes" con estructura extensible: sección Notificaciones (toggles + hora
 ### 2. ~~Notificaciones litúrgicas personalizables~~ ✓ *Implementado en v1.2.2*
 Scheduling real con `expo-notifications`: Ángelus y Lectura del día usan `SchedulableTriggerInputTypes.DAILY`; Día de precepto programa notificaciones individuales (`DATE`) para el día anterior a cada precepto de los próximos 2 años (~16 alarmas). Los identificadores fijos (`fides-angelus`, `fides-lectura`, `fides-precepto-YYYY-MM-DD`) permiten cancelar y reprogramar sin almacenar IDs. La inicialización se lanza en `_layout.tsx` una vez que Zustand termina de hidratar AsyncStorage (`_hasHydrated`).
 
-### 3. Calendario litúrgico anual completo
-Vista de calendario mensual con todas las solemnidades, fiestas, memorias obligatorias y memorias libres. Colores litúrgicos por día. Tap en cualquier fecha para ver la lectura del evangelio de ese día (retroactivo y futuro). Útil para planificar retiros, preparar catequesis, seguir el año litúrgico con perspectiva.
+### 3. ~~Calendario litúrgico anual completo~~ ✓ *Implementado en v1.2.3*
+Pantalla `app/calendario.tsx` accesible desde el CTA "Ver calendario →" en la sección Esta semana del home. Los 12 meses del año se renderizan en un scroll vertical con cuadrícula lun–dom. Fondo de cada día teñido por tiempo litúrgico; borde rojo para días de precepto; relleno `#FF7D7D` para hoy; 45% de opacidad para pasados. Navegación entre años con `< >`. Leyenda de 5 entradas al pie. El pendiente de v2.0 es añadir tap en fecha para abrir la lectura del evangelio de ese día.
 
 ### 4. Biblia completa navegable
 Acceso a todos los libros de la Biblia (incluidos deuterocanónicos, ya soportados por la API actual) con búsqueda por referencia o por texto. Posibilidad de guardar versículos favoritos y añadirlos a las notas personales de cualquier lectura guardada. La infraestructura de `biblia.ts` ya tiene el mapping completo de libros.

@@ -63,6 +63,10 @@ export default function RootLayout() {
           name="acerca-de"
           options={{ headerShown: false, animation: "slide_from_right" }}
         />
+        <Stack.Screen
+          name="calendario"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
       </Stack>
       </BottomSheetModalProvider>
     </GestureHandlerRootView>
