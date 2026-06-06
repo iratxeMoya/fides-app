@@ -49,6 +49,7 @@ function DiaSemanaItem({ fecha, esHoy, esPasado }: DiaSemanaItemProps) {
     <View style={{ alignItems: "center", flex: 1 }}>
       {/* Abreviatura del día */}
       <Text
+        allowFontScaling={false}
         style={{
           fontFamily:    "Inter_500Medium",
           fontSize:      10,
