@@ -1,8 +1,10 @@
 import React from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, PixelRatio } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { isPrecept } from "@/constants/liturgical";
+
+const FONT_SCALE = PixelRatio.getFontScale();
 
 const ACCENT = "#FF7D7D";
 
@@ -52,7 +54,7 @@ function DiaSemanaItem({ fecha, esHoy, esPasado }: DiaSemanaItemProps) {
         allowFontScaling={false}
         style={{
           fontFamily:    "Inter_500Medium",
-          fontSize:      10,
+          fontSize:      10 / FONT_SCALE,
           letterSpacing: 1.5,
           textTransform: "uppercase",
           color:         esPasado ? "#555555" : "#888888",
@@ -170,7 +172,7 @@ export function EstaSemanaSection({ hoy }: EstaSemanaSectionProps) {
                 flexShrink:      0,
               }}
             />
-            <Text allowFontScaling={false} numberOfLines={1} style={{ fontFamily: "Inter_400Regular", fontSize: 10, lineHeight: 14, color: "#888888" }}>
+            <Text allowFontScaling={false} numberOfLines={1} style={{ fontFamily: "Inter_400Regular", fontSize: 10 / FONT_SCALE, lineHeight: 14, color: "#888888" }}>
               Día de precepto
             </Text>
           </View>
@@ -179,7 +181,7 @@ export function EstaSemanaSection({ hoy }: EstaSemanaSectionProps) {
             style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
             android_ripple={null}
           >
-            <Text allowFontScaling={false} numberOfLines={1} style={{ fontFamily: "Inter_400Regular", fontSize: 11, color: ACCENT }}>
+            <Text allowFontScaling={false} numberOfLines={1} style={{ fontFamily: "Inter_400Regular", fontSize: 11 / FONT_SCALE, color: ACCENT }}>
               Ver calendario
             </Text>
             <Ionicons name="chevron-forward" size={12} color={ACCENT} />

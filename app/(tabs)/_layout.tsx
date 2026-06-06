@@ -1,6 +1,8 @@
 import { Tabs } from "expo-router";
-import { Platform, View, Pressable, Text } from "react-native";
+import { Platform, View, Pressable, Text, PixelRatio } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
+const FONT_SCALE = PixelRatio.getFontScale();
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 const TABS = [
@@ -59,7 +61,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               numberOfLines={1}
               style={{
                 fontFamily: "Inter_500Medium",
-                fontSize:   10,
+                fontSize:   10 / FONT_SCALE,
                 color,
               }}
             >

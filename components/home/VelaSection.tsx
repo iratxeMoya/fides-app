@@ -1,5 +1,7 @@
 import React, { useCallback, useRef, useState } from "react";
-import { View, Text, Pressable, Share } from "react-native";
+import { View, Text, Pressable, Share, PixelRatio } from "react-native";
+
+const FONT_SCALE = PixelRatio.getFontScale();
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 
@@ -78,7 +80,7 @@ export function VelaSection() {
               allowFontScaling={false}
               style={{
                 fontFamily: "Inter_500Medium",
-                fontSize:   13,
+                fontSize:   13 / FONT_SCALE,
                 color:      "#FF7D7D",
               }}
             >
