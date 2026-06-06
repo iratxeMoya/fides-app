@@ -45,6 +45,7 @@ export function VelaSection() {
         </Text>
 
         <Text
+          allowFontScaling={false}
           style={{
             fontFamily:  "Inter_400Regular",
             fontSize:    13,
@@ -54,10 +55,7 @@ export function VelaSection() {
             marginBottom: 16,
           }}
         >
-          Si Fides te es útil y te ayuda, puedes contribuir{"\n"}
-          con lo que quieras — es voluntario y se agradece.{"\n"}
-          Las contribuciones se destinan exclusivamente{"\n"}
-          al mantenimiento de la app.
+          Si Fides te es útil y te ayuda, puedes contribuir con lo que quieras — es voluntario y se agradece. Las contribuciones se destinan exclusivamente al mantenimiento de la app.
         </Text>
 
         <View style={{ flexDirection: "row", justifyContent: "center" }}>
@@ -77,6 +75,7 @@ export function VelaSection() {
           >
             <Ionicons name="flame-outline" size={14} color="#FF7D7D" />
             <Text
+              allowFontScaling={false}
               style={{
                 fontFamily: "Inter_500Medium",
                 fontSize:   13,

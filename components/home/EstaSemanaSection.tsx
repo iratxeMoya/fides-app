@@ -169,7 +169,7 @@ export function EstaSemanaSection({ hoy }: EstaSemanaSectionProps) {
                 flexShrink:      0,
               }}
             />
-            <Text style={{ fontFamily: "Inter_400Regular", fontSize: 10, lineHeight: 14, color: "#888888" }}>
+            <Text allowFontScaling={false} numberOfLines={1} style={{ fontFamily: "Inter_400Regular", fontSize: 10, lineHeight: 14, color: "#888888" }}>
               Día de precepto
             </Text>
           </View>
@@ -178,7 +178,7 @@ export function EstaSemanaSection({ hoy }: EstaSemanaSectionProps) {
             style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
             android_ripple={null}
           >
-            <Text style={{ fontFamily: "Inter_400Regular", fontSize: 11, color: ACCENT }}>
+            <Text allowFontScaling={false} numberOfLines={1} style={{ fontFamily: "Inter_400Regular", fontSize: 11, color: ACCENT }}>
               Ver calendario
             </Text>
             <Ionicons name="chevron-forward" size={12} color={ACCENT} />

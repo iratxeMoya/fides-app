@@ -55,10 +55,11 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             <Ionicons name={iconName} size={22} color={color} />
 
             <Text
+              allowFontScaling={false}
+              numberOfLines={1}
               style={{
-                fontFamily:    "Inter_500Medium",
-                fontSize:      10,
-                letterSpacing: 0.3,
+                fontFamily: "Inter_500Medium",
+                fontSize:   10,
                 color,
               }}
             >
