@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import {
   Map as MaplibreMap,
   Camera as MaplibreCamera,
@@ -130,6 +131,7 @@ function FabUbicacion({ onPress }: { onPress: () => void }) {
 
 export default function MapaScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const cameraRef   = useRef<any>(null);
   const mapRef      = useRef<MapRef>(null);
@@ -616,6 +618,11 @@ export default function MapaScreen() {
               iglesia={item}
               seleccionada={seleccionadaId === item.id}
               onPress={() => seleccionarIglesia(item)}
+              onMasInfo={() =>
+                router.push(
+                  `/mapa/iglesia/${encodeURIComponent(item.id)}?lat=${item.lat}&lng=${item.lng}&nombre=${encodeURIComponent(item.nombre)}&direccion=${encodeURIComponent(item.direccion)}` as any
+                )
+              }
             />
           )}
         />

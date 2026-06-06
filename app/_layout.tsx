@@ -42,16 +42,6 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
-          name="iglesia/[id]"
-          options={{
-            headerShown: true,
-            headerStyle: { backgroundColor: "#111111" },
-            headerTintColor: "#FFFFFF",
-            headerTitle: "",
-            headerBackTitle: "Volver",
-          }}
-        />
-        <Stack.Screen
           name="lectura/[id]"
           options={{ headerShown: false, animation: "slide_from_right" }}
         />

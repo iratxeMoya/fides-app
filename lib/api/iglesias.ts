@@ -80,6 +80,7 @@ export type IglesiaDetalle = {
   web?: string;
   horarios: HorarioMisa[];
   fotosRefs: string[];
+  image?: string;
 };
 
 // ─── Parser de opening_hours OSM → HorarioMisa[] ────────────────────────────
@@ -930,6 +931,13 @@ export async function getChurchDetails(
       horarios = await fetchBMSchedule(nombre, fallbackLat || lat, fallbackLng || lng);
     }
 
+    const rawImage = tags.image ?? tags.wikimedia_commons;
+    const image = rawImage
+      ? rawImage.startsWith("File:")
+        ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(rawImage.slice(5))}?width=800`
+        : rawImage
+      : undefined;
+
     const detalle: IglesiaDetalle = {
       id,
       nombre,
@@ -945,6 +953,7 @@ export async function getChurchDetails(
       web: tags.website ?? tags["contact:website"] ?? tags["contact:url"],
       horarios,
       fotosRefs: [],
+      image,
     };
 
     apiCache.set(cacheKey, detalle, TTL_1H);

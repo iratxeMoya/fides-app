@@ -40,7 +40,7 @@ Católico practicante hispanohablante, 25–55 años, con smartphone. No necesar
 
 ---
 
-## Estado actual — v1.2.3
+## Estado actual — v1.2.5
 
 ### Pantallas
 
@@ -55,17 +55,21 @@ Pantalla principal con scroll vertical y animaciones en cascada. Seis secciones:
 6. **Enciende una vela** — Sección de donación voluntaria vía Bizum. Abre un bottom sheet con el número, botón de compartir y descripción.
 
 #### Mapa de iglesias
-Mapa interactivo oscuro (MapLibre + CARTO) centrado en la ubicación del usuario. Bottom sheet con lista de iglesias cercanas en un radio de 5 km. Búsqueda por texto (Nominatim + OSM REST API). La iglesia seleccionada se resalta en el mapa y muestra el horario semanal completo.
+Mapa interactivo oscuro (MapLibre + CARTO) centrado en la ubicación del usuario. Bottom sheet con lista de iglesias cercanas en un radio de 5 km. Búsqueda por texto (Nominatim + OSM REST API). La iglesia seleccionada se resalta en el mapa y muestra el horario semanal completo. El botón "Más información →" al pie del horario expandido abre la pantalla de detalle de iglesia.
 
 La fuente primaria de horarios es **misas.org** (`/api/parishsearch`). Para obtener el calendario completo — el API filtra por día de la semana del `date` pasado — se hacen **7 llamadas paralelas** (una por cada día de la semana siguiente) y se fusionan los resultados, deduplicando por `(hora, días)`. El resultado es el horario semanal completo desde la carga inicial, sin necesidad de consultas adicionales al seleccionar una iglesia.
 
 Cuando una iglesia no tiene domingo en misas.org, se activa un fallback a **buscarmisas.es**: primero se prueban slugs directos derivados del nombre; si fallan, se descarga la página de ciudad y se busca la iglesia por solapamiento de palabras significativas.
 
+#### Detalle de iglesia *(Stack anidado dentro del tab Mapa)*
+Pantalla accesible desde "Más información →" en la card expandida del mapa. La tab bar permanece visible. Muestra: mini-mapa CARTO dark centrado en la iglesia (o foto si la iglesia tiene tag `image`/`wikimedia_commons` en OSM), nombre en Cormorant, dirección, horario semanal completo, y sección de contacto con teléfono y web si están disponibles. Al pie, botón fijo "¿Horario incorrecto? Repórtalo" que abre `mailto:` prefilled con nombre, dirección e ID de la iglesia y el horario actual serializado.
+
 #### Lectura
-Tres pestañas:
+Cuatro pestañas:
 - **Del día** — Lectura completa del evangelio del día + primera lectura + salmo responsorial. El texto bíblico viene de la API española (bible.helloao.org, traducción BLM).
-- **Recomendadas** — Biblioteca curada de libros católicos (filosofía, teología, espiritualidad, apologética). Cada libro tiene ficha con descripción, ISBN y enlace de compra.
+- **Libros** — Biblioteca curada de libros católicos (filosofía, teología, espiritualidad, apologética). Cada libro tiene ficha con descripción, ISBN y enlace de compra.
 - **Guardados** — Lecturas guardadas por el usuario con notas personales.
+- **Biblia** — Navegación completa de los 73 libros de la Biblia católica (ver sección Biblia más abajo).
 
 #### Detalle de lectura guardada
 Pantalla de inmersión: texto completo y notas personales editables.
@@ -98,7 +102,7 @@ El tipo `HorarioMisa` tiene tres flags opcionales:
 ### Persistencia local
 SQLite con Drizzle ORM. Tablas: `iglesias` (caché de iglesias con horarios completos), `lecturas_favoritas`, `lecturas_recomendadas`, `chat_mensajes`.
 
-**AsyncStorage** para preferencias de usuario (`preferenciasStore`): toggles de notificación y horas configuradas. Zustand `persist` con wrapper try/catch para evitar errores no capturados en la New Architecture.
+**AsyncStorage** para preferencias de usuario (`preferenciasStore`) y progreso de lectura bíblica (`bibliaStore`): toggles de notificación, horas configuradas y capítulos leídos. Zustand `persist` con wrapper try/catch para evitar errores no capturados en la New Architecture.
 
 - Caché en memoria (TTL 1 h) para respuestas de red en la sesión activa.
 - Caché persistente en SQLite (TTL 24 h) para iglesias con horarios — permite consultas rápidas en recargas y funciona sin conexión.
@@ -117,14 +121,24 @@ Scheduling real con `expo-notifications`: Ángelus y Lectura del día usan `Sche
 ### 3. ~~Calendario litúrgico anual completo~~ ✓ *Implementado en v1.2.3*
 Pantalla `app/calendario.tsx` accesible desde el CTA "Ver calendario →" en la sección Esta semana del home. Los 12 meses del año se renderizan en un scroll vertical con cuadrícula lun–dom. Fondo de cada día teñido por tiempo litúrgico; borde rojo para días de precepto; relleno `#FF7D7D` para hoy; 45% de opacidad para pasados. Navegación entre años con `< >`. Leyenda de 5 entradas al pie. El pendiente de v2.0 es añadir tap en fecha para abrir la lectura del evangelio de ese día.
 
-### 4. Biblia completa navegable
-Acceso a todos los libros de la Biblia (incluidos deuterocanónicos, ya soportados por la API actual) con búsqueda por referencia o por texto. Posibilidad de guardar versículos favoritos y añadirlos a las notas personales de cualquier lectura guardada. La infraestructura de `biblia.ts` ya tiene el mapping completo de libros.
+### 4. ~~Biblia completa navegable~~ ✓ *Implementado en v1.2.4*
+Tab "Biblia" dentro de la pantalla Lectura. Tres vistas con navegación interna (sin rutas Stack): lista de 73 libros (AT + NT) con buscador que ignora tildes y mayúsculas, grid de capítulos (7 columnas) con dot rojo para capítulos leídos, y lector de capítulo con navegación por gestos (swipe izquierda/derecha) y botones `< >`. Al final de cada capítulo: botón "Marcar como leído" que persiste en `bibliaStore` (Zustand + AsyncStorage). En la lista de libros se muestra el progreso `X/Y` o `✓` cuando el libro está completo. El texto bíblico viene de `bible.helloao.org/api/spa_blm` (misma API que las lecturas del día, traducción BLM, incluye deuterocanónicos).
 
-### 5. Mas informacion sobre iglesias
-En el mapa, al hacer chick en una iglesia (ya sea en el listado o en el mapa), actualmente se expande para enseñar todos los horarios. Quiero que debajo del todo tenga un "Mas informacion ->" que abra una pantalla nueva con toda la informacion de la iglesia: Nombre, direccion, [NUEVO] foto de la iglesia, horarios de misa, [NUEVO] horarios de hora santa (si se conoce horarios), [NUEVO] confesiones (si se conoce horarios) 
+### 5. ~~Más información sobre iglesias~~ ✓ *Implementado en v1.2.5*
+Pantalla de detalle de iglesia accesible desde "Más información →" en la card expandida del mapa. Muestra nombre, dirección, mini-mapa de ubicación (o foto si está en OSM), horario semanal de misas, contacto (teléfono/web) y botón fijo "¿Horario incorrecto? Repórtalo" con mailto prefilled. La tab bar permanece visible (Stack anidado dentro del tab Mapa). Pendiente para iteración futura: horarios de hora santa y confesiones (requiere identificar fuente de datos).
 
 ### 6. Integración de IA con NVIDIA NIM
 Chat de reflexión sobre la lectura del día y recomendaciones de lecturas bíblicas específicas contextualizadas en el evangelio de cada jornada. El proveedor sería NVIDIA NIM en lugar de Claude, manteniendo la misma interfaz de streaming ya definida en `lib/api/chat.ts`. Las recomendaciones combinarían el texto del evangelio del día, el tiempo litúrgico calculado y el historial de lecturas guardadas del usuario para personalizar las sugerencias.
+
+Quiero dividir esta tarea en varias:
+#### 6.1. Agregar proveedor sin funcionalidades aun
+Añadir a la app el workflow de la IA, aun sin utilizarla activamente. Testear el workflow.
+
+#### 6.2. Chat de reflexion
+En la lectura del dia, añadir las 2 opciones: reflexion personal o notas (simplemente notas para uno mismo) o reflexion guiada (chat con IA que preparado y configurado para entender el texto, contextualizarlo y reflexionar sobre ello como si hablaras con un teologo o cura)
+
+#### 6.3. Recomendaciones de lectura
+En base al texto de lectura del dia, recomendar en la pantalla de Recomendaciones libros, secciones de la biblia o textos de otros ambitos que ayuden a contextualizar o ampliar la lectura
 
 ### 7. Comunidad *(v3.0)*
 Registro y login de usuarios. Blog general de comunidad más subblogs temáticos o parroquiales abiertos al público — cualquiera puede unirse a uno o varios. Moderación automática por IA que filtra mensajes hirientes, desinformación y malas praxis antes de la publicación. Cada subforo cuenta además con un moderador humano como último recurso. La identidad de la plataforma es la misma que la app: recogida, sin engagement artificial, orientada a la reflexión compartida.

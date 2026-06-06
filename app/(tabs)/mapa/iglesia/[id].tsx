@@ -61,6 +61,7 @@ function FilaContacto({
         gap:             10,
         paddingVertical: 10,
       })}
+      android_ripple={null}
     >
       <Ionicons name={icono} size={16} color={ACCENT} />
       <Text
@@ -109,9 +110,9 @@ export default function IglesiaDetalleScreen() {
   useEffect(() => { cargar(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const abrirReporte = () => {
-    const asunto    = encodeURIComponent(`Horario incorrecto: ${nombre}`);
+    const asunto     = encodeURIComponent(`Horario incorrecto: ${nombre}`);
     const horarioTxt = detalle ? serializarHorarios(detalle.horarios) : "Sin datos";
-    const cuerpo    = encodeURIComponent(
+    const cuerpo     = encodeURIComponent(
       `Iglesia: ${nombre}\nDirección: ${detalle?.direccion ?? direccion}\nID: ${id}\n\nHorario actual:\n${horarioTxt}`,
     );
     Linking.openURL(`mailto:iratxe.moya@gmail.com?subject=${asunto}&body=${cuerpo}`);
@@ -120,7 +121,7 @@ export default function IglesiaDetalleScreen() {
   const tieneImagen = !!detalle?.image && !imgError;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#0A0A0A" }} edges={["top", "bottom"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#0A0A0A" }} edges={["top"]}>
 
       {/* ── Header ── */}
       <View
@@ -135,22 +136,14 @@ export default function IglesiaDetalleScreen() {
       >
         <Pressable
           onPress={() => router.back()}
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, marginRight: 10 })}
-          hitSlop={8}
+          style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+          android_ripple={null}
         >
-          <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={18} color={ACCENT} />
+          <Text style={{ fontFamily: "Inter_500Medium", fontSize: 14, color: ACCENT }}>
+            Mapa
+          </Text>
         </Pressable>
-        <Text
-          numberOfLines={1}
-          style={{
-            fontFamily: "Cormorant_600SemiBold",
-            fontSize:   18,
-            color:      "#FFFFFF",
-            flex:       1,
-          }}
-        >
-          {nombre}
-        </Text>
       </View>
 
       {/* ── Contenido ── */}
@@ -168,7 +161,6 @@ export default function IglesiaDetalleScreen() {
             onError={() => setImgError(true)}
           />
         ) : (
-          // Mini-mapa no interactivo: muestra la ubicación siempre disponible
           <View style={{ height: 200, overflow: "hidden" }} pointerEvents="none">
             <MaplibreMap
               style={{ flex: 1 }}
@@ -181,12 +173,12 @@ export default function IglesiaDetalleScreen() {
               <MaplibreMarker id="church-pin" lngLat={[lng, lat]}>
                 <View
                   style={{
-                    width:       14,
-                    height:      14,
-                    borderRadius: 7,
+                    width:           14,
+                    height:          14,
+                    borderRadius:    7,
                     backgroundColor: ACCENT,
-                    borderWidth: 2,
-                    borderColor: "#FFFFFF",
+                    borderWidth:     2,
+                    borderColor:     "#FFFFFF",
                   }}
                 />
               </MaplibreMarker>
@@ -209,7 +201,7 @@ export default function IglesiaDetalleScreen() {
 
           {(detalle?.direccion ?? direccion) ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-              <Ionicons name="location-outline" size={13} color="#555555" />
+              <Ionicons name="location-outline" size={13} color={ACCENT} />
               <Text
                 style={{ fontFamily: "Inter_400Regular", fontSize: 13, color: "#888888", flex: 1 }}
               >
@@ -230,7 +222,7 @@ export default function IglesiaDetalleScreen() {
             style={{
               fontFamily:    "Inter_500Medium",
               fontSize:      10,
-              color:         "#666666",
+              color:         ACCENT,
               letterSpacing: 2,
               textTransform: "uppercase",
               marginBottom:  4,
@@ -263,6 +255,7 @@ export default function IglesiaDetalleScreen() {
                   borderWidth:       1,
                   borderColor:       "#333333",
                 })}
+                android_ripple={null}
               >
                 <Text style={{ fontFamily: "Inter_500Medium", fontSize: 12, color: "#AAAAAA" }}>
                   Reintentar
@@ -320,7 +313,7 @@ export default function IglesiaDetalleScreen() {
 
       </ScrollView>
 
-      {/* ── Botón fijo al bottom ── */}
+      {/* ── Botón fijo al bottom (encima de la tab bar) ── */}
       <View
         style={{
           borderTopWidth:  1,
@@ -333,6 +326,7 @@ export default function IglesiaDetalleScreen() {
         <Pressable
           onPress={abrirReporte}
           style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          android_ripple={null}
         >
           <Text
             style={{
