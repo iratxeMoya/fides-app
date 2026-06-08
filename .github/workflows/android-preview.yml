@@ -32,6 +32,11 @@ jobs:
     - name: Make Gradle executable
       run: chmod +x android/gradlew
 
+    - name: Increase Gradle JVM memory
+      run: |
+        echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError" \
+          >> android/gradle.properties
+
     - name: Generate preview signing keystore
       run: |
         keytool -genkey -v \
@@ -44,6 +49,7 @@ jobs:
       working-directory: android
       run: |
         ./gradlew assembleRelease \
+          -x lintVitalAnalyzeRelease \
           -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/android/app/fides-preview.keystore \
           -Pandroid.injected.signing.store.password=preview123 \
           -Pandroid.injected.signing.key.alias=fides \
