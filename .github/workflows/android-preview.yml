@@ -1,0 +1,57 @@
+name: Build Android APK (preview)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Install dependencies
+      run: npm install --legacy-peer-deps
+
+    - name: Generate Android native project
+      run: EXPO_NO_GIT_STATUS_CHECK=1 npx expo prebuild --platform android --no-install
+
+    - name: Make Gradle executable
+      run: chmod +x android/gradlew
+
+    - name: Generate preview signing keystore
+      run: |
+        keytool -genkey -v \
+          -keystore android/app/fides-preview.keystore \
+          -alias fides -keyalg RSA -keysize 2048 -validity 365 \
+          -storepass preview123 -keypass preview123 \
+          -dname "CN=Fides Preview, O=Fides, C=ES" 2>/dev/null
+
+    - name: Build release APK
+      working-directory: android
+      run: |
+        ./gradlew assembleRelease \
+          -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/android/app/fides-preview.keystore \
+          -Pandroid.injected.signing.store.password=preview123 \
+          -Pandroid.injected.signing.key.alias=fides \
+          -Pandroid.injected.signing.key.password=preview123
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: fides-android-preview
+        path: android/app/build/outputs/apk/release/app-release.apk
+        retention-days: 7
