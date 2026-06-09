@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import {
+  Alert,
   Animated,
   KeyboardAvoidingView,
   Platform,
@@ -18,21 +19,21 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { SkeletonCard, SkeletonLine } from "@/components/home/SkeletonCard";
+import type { MensajeChatLocal } from "@/lib/api/chat";
 import {
-  buildSystemPromptLectura,
-  enviarMensajeChat,
-  type MensajeChatLocal,
-} from "@/lib/api/chat";
+  buildSystemPromptNIM,
+  enviarMensajeChatNIM,
+} from "@/lib/api/nim";
 import { translateRefES, type LecturaDelDia } from "@/lib/api/biblia";
 import {
   getLecturasFavoritas,
   saveLecturaFavorita,
   deleteLecturaFavorita,
+  getMensajesChat,
+  saveMensajeChat,
+  deleteMensajesChat,
 } from "@/lib/db/queries";
 import { NotasPersonales } from "@/components/lectura/NotasPersonales";
-
-// Chat con IA oculto temporalmente — se retomará más adelante
-const MOSTRAR_CHAT_IA = false;
 
 // ─── Color litúrgico ──────────────────────────────────────────────────────────
 
@@ -143,7 +144,7 @@ function BurbujaChat({ mensaje }: { mensaje: MensajeChatLocal }) {
             lineHeight: 21,
           }}
         >
-          {mensaje.content}
+          {mensaje.content ?? ""}
         </Text>
       </View>
     </View>
@@ -343,22 +344,27 @@ function ChatInputBar({
         onPress={onSend}
         disabled={!puedeEnviar}
         style={({ pressed }) => ({
-          width:           40,
-          height:          40,
-          borderRadius:    20,
-          backgroundColor: puedeEnviar ? "#FF7D7D" : "#1A1A1A",
-          alignItems:      "center",
-          justifyContent:  "center",
-          opacity:         !puedeEnviar ? 0.5 : pressed ? 0.75 : 1,
-          borderWidth:     puedeEnviar ? 0 : 1,
-          borderColor:     "#2A2A2A",
+          opacity: !puedeEnviar ? 0.45 : pressed ? 0.75 : 1,
         })}
       >
-        <Ionicons
-          name="send"
-          size={16}
-          color={puedeEnviar ? "#FFFFFF" : "#444444"}
-        />
+        <View
+          style={{
+            width:           40,
+            height:          40,
+            borderRadius:    20,
+            backgroundColor: puedeEnviar ? "#FF7D7D" : "rgba(255,125,125,0.12)",
+            borderWidth:     puedeEnviar ? 0 : 1,
+            borderColor:     "rgba(255,125,125,0.45)",
+            alignItems:      "center",
+            justifyContent:  "center",
+          }}
+        >
+          <Ionicons
+            name="arrow-up"
+            size={18}
+            color={puedeEnviar ? "#FFFFFF" : "#FF7D7D"}
+          />
+        </View>
       </Pressable>
     </View>
   );
@@ -375,15 +381,20 @@ type Props = {
   onGuardadaChange:  (v: boolean) => void;
 };
 
+type ModoReflexion = "notas" | "chat";
+
 export function LecturaDelDiaTab({ cargando, lectura, error, hoy, guardada, onGuardadaChange }: Props) {
   const insets     = useSafeAreaInsets();
   const scrollRef  = useRef<ScrollView>(null);
   const abortRef   = useRef<AbortController | null>(null);
 
-  const [mensajes,       setMensajes]       = useState<MensajeChatLocal[]>([]);
-  const [escribiendo,    setEscribiendo]    = useState(false);
-  const [textoStreaming, setTextoStreaming] = useState("");
-  const [inputTexto,     setInputTexto]     = useState("");
+  const [modo,             setModo]             = useState<ModoReflexion>("notas");
+  const [mensajes,         setMensajes]         = useState<MensajeChatLocal[]>([]);
+  const [escribiendo,      setEscribiendo]      = useState(false);
+  const [textoStreaming,   setTextoStreaming]    = useState("");
+  const [inputTexto,       setInputTexto]       = useState("");
+  const [mensajesCargados, setMensajesCargados] = useState(false);
+  const [esperandoRateLimit, setEsperandoRateLimit] = useState(false);
   const fechaDb = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,"0")}-${String(hoy.getDate()).padStart(2,"0")}`;
   const favId   = `${fechaDb}-evangelio`;
 
@@ -393,21 +404,96 @@ export function LecturaDelDiaTab({ cargando, lectura, error, hoy, guardada, onGu
 
   // System prompt memoizado
   const systemPrompt = useMemo(
-    () => (lectura ? buildSystemPromptLectura(lectura) : ""),
+    () => (lectura ? buildSystemPromptNIM(lectura) : ""),
     [lectura]
   );
 
-  // Auto-scroll al final cuando llegan mensajes o streaming (solo con chat IA activo)
+  // Auto-scroll al final cuando llegan mensajes o streaming en modo chat
   useEffect(() => {
-    if (!MOSTRAR_CHAT_IA) return;
+    if (modo !== "chat") return;
     const t = setTimeout(() => {
       scrollRef.current?.scrollToEnd({ animated: true });
     }, 80);
     return () => clearTimeout(t);
-  }, [mensajes.length, textoStreaming, escribiendo]);
+  }, [mensajes.length, textoStreaming, escribiendo, modo]);
 
   // Abortar si el componente se desmonta durante streaming
   useEffect(() => () => { abortRef.current?.abort(); }, []);
+
+  // Cargar historial del chat desde SQLite al montar
+  useEffect(() => {
+    getMensajesChat(fechaDb)
+      .then((rows) => {
+        if (rows.length > 0) {
+          setMensajes(rows.map((r) => ({
+            id:      r.id,
+            role:    r.role as "user" | "assistant",
+            content: r.content ?? "",
+          })));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setMensajesCargados(true));
+  }, [fechaDb]);
+
+  // Cuando el modo chat se activa y el historial ya está cargado, la IA abre con la primera pregunta
+  const iniciarChat = useCallback(async () => {
+    if (!lectura || mensajesRef.current.length > 0) return;
+    setEscribiendo(true);
+    setTextoStreaming("");
+    const controller = new AbortController();
+    abortRef.current = controller;
+    let respuesta = "";
+    try {
+      for await (const chunk of enviarMensajeChatNIM(
+        [{ id: "init", role: "user", content: "Inicia la reflexión." }],
+        systemPrompt,
+        controller.signal,
+        (esperando) => setEsperandoRateLimit(esperando),
+      )) {
+        respuesta += chunk;
+        setTextoStreaming(respuesta);
+      }
+      if (respuesta) {
+        const msg: MensajeChatLocal = { id: `a-${Date.now()}`, role: "assistant", content: respuesta };
+        setMensajes([msg]);
+        saveMensajeChat({ id: msg.id, lecturaFecha: fechaDb, role: "assistant", content: msg.content, createdAt: new Date() }).catch(() => {});
+      }
+    } catch {
+      // silencioso — el usuario puede escribir igualmente
+    } finally {
+      setTextoStreaming("");
+      setEscribiendo(false);
+    }
+  }, [lectura, systemPrompt, fechaDb]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (modo === "chat" && mensajesCargados) iniciarChat();
+  }, [modo, lectura, mensajesCargados]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const borrarHistorial = useCallback(() => {
+    Alert.alert(
+      "Borrar conversación",
+      "La reflexión de hoy se eliminará. Podrás comenzar de nuevo.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Borrar",
+          style: "destructive",
+          onPress: async () => {
+            abortRef.current?.abort();
+            setMensajes([]);
+            mensajesRef.current = [];
+            setTextoStreaming("");
+            setEscribiendo(false);
+            setEsperandoRateLimit(false);
+            await deleteMensajesChat(fechaDb).catch(() => {});
+            iniciarChat();
+          },
+        },
+      ]
+    );
+  }, [fechaDb, iniciarChat]);
 
   const enviar = useCallback(async () => {
     const texto = inputTexto.trim();
@@ -415,11 +501,10 @@ export function LecturaDelDiaTab({ cargando, lectura, error, hoy, guardada, onGu
 
     setInputTexto("");
 
-    const nuevosMensajes: MensajeChatLocal[] = [
-      ...mensajesRef.current,
-      { id: `u-${Date.now()}`, role: "user", content: texto },
-    ];
+    const userMsg: MensajeChatLocal = { id: `u-${Date.now()}`, role: "user", content: texto };
+    const nuevosMensajes: MensajeChatLocal[] = [...mensajesRef.current, userMsg];
     setMensajes(nuevosMensajes);
+    saveMensajeChat({ id: userMsg.id, lecturaFecha: fechaDb, role: "user", content: userMsg.content, createdAt: new Date() }).catch(() => {});
     setEscribiendo(true);
     setTextoStreaming("");
 
@@ -428,19 +513,19 @@ export function LecturaDelDiaTab({ cargando, lectura, error, hoy, guardada, onGu
 
     let respuesta = "";
     try {
-      for await (const chunk of enviarMensajeChat(
+      for await (const chunk of enviarMensajeChatNIM(
         nuevosMensajes,
         systemPrompt,
-        controller.signal
+        controller.signal,
+        (esperando) => setEsperandoRateLimit(esperando),
       )) {
         respuesta += chunk;
         setTextoStreaming(respuesta);
       }
 
-      setMensajes((prev) => [
-        ...prev,
-        { id: `a-${Date.now()}`, role: "assistant", content: respuesta },
-      ]);
+      const aMsg: MensajeChatLocal = { id: `a-${Date.now()}`, role: "assistant", content: respuesta };
+      setMensajes((prev) => [...prev, aMsg]);
+      saveMensajeChat({ id: aMsg.id, lecturaFecha: fechaDb, role: "assistant", content: aMsg.content, createdAt: new Date() }).catch(() => {});
     } catch (e) {
       if (!(e instanceof Error && e.name === "AbortError")) {
         setMensajes((prev) => [
@@ -667,32 +752,101 @@ export function LecturaDelDiaTab({ cargando, lectura, error, hoy, guardada, onGu
           style={{
             borderTopWidth: 1,
             borderTopColor: "#1E1E1E",
-            marginBottom:   24,
+            marginBottom:   20,
           }}
         />
 
-        {/* ── NOTAS PERSONALES ── */}
-        <NotasPersonales lecturaFecha={fechaDb} />
+        {/* ── SELECTOR DE MODO ── */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 20 }}>
+        <View
+          style={{
+            flex:            1,
+            flexDirection:   "row",
+            backgroundColor: "#161616",
+            borderRadius:    28,
+            padding:         4,
+          }}
+        >
+          {(["notas", "chat"] as ModoReflexion[]).map((m, i) => {
+            const activo  = modo === m;
+            const primero = i === 0;
+            const ultimo  = i === 1;
+            const r = 24;
+            return (
+              <View
+                key={m}
+                style={{
+                  flex:                    1,
+                  overflow:                "hidden",
+                  borderTopLeftRadius:     primero ? r : 6,
+                  borderBottomLeftRadius:  primero ? r : 6,
+                  borderTopRightRadius:    ultimo  ? r : 6,
+                  borderBottomRightRadius: ultimo  ? r : 6,
+                }}
+              >
+                <Pressable
+                  onPress={() => setModo(m)}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+                >
+                  <View
+                    style={{
+                      alignItems:      "center",
+                      paddingVertical: 9,
+                      backgroundColor: activo ? "#FF7D7D" : "transparent",
+                    }}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        fontFamily: "Inter_500Medium",
+                        fontSize:   12,
+                        lineHeight: 12,
+                        color:      activo ? "#FFFFFF" : "#666666",
+                      }}
+                    >
+                      {m === "notas" ? "Mis notas" : "Reflexión guiada"}
+                    </Text>
+                  </View>
+                </Pressable>
+              </View>
+            );
+          })}
+        </View>
+        {modo === "chat" && mensajes.length > 0 && (
+          <Pressable
+            onPress={borrarHistorial}
+            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+            hitSlop={8}
+          >
+            <Ionicons name="trash-outline" size={18} color="#555555" />
+          </Pressable>
+        )}
+        </View>
 
-        {/* ── CHAT IA (oculto temporalmente) ── */}
-        {MOSTRAR_CHAT_IA && (
+        {/* ── MODO NOTAS ── */}
+        {modo === "notas" && (
+          <NotasPersonales lecturaFecha={fechaDb} />
+        )}
+
+        {/* ── MODO CHAT ── */}
+        {modo === "chat" && (
           <>
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontFamily: "CormorantGaramond_600SemiBold", fontSize: 20, color: "#FFFFFF", marginBottom: 4 }}>
-                Reflexiona con la Lectio
-              </Text>
-              <Text style={{ fontFamily: "Inter_400Regular", fontSize: 12, color: "#555555", lineHeight: 18 }}>
-                Comparte tus dudas o pensamientos sobre el Evangelio de hoy.
-              </Text>
-            </View>
-            {mensajes.length === 0 && !escribiendo && (
-              <View style={{ padding: 16, backgroundColor: "#111111", borderRadius: 12, borderWidth: 1, borderColor: "#2A2A2A", marginBottom: 16 }}>
-                <Text style={{ fontFamily: "CormorantGaramond_400Regular_Italic", fontSize: 15, color: "#555555", lineHeight: 22, textAlign: "center" }}>
-                  «¿Qué te dice este Evangelio hoy?»
+            {mensajes.map((m) => <BurbujaChat key={m.id} mensaje={m} />)}
+            {esperandoRateLimit && (
+              <View style={{ alignItems: "center", paddingVertical: 14, paddingHorizontal: 20 }}>
+                <Text
+                  style={{
+                    fontFamily: "CormorantGaramond_400Regular_Italic",
+                    fontSize:   15,
+                    color:      "#555555",
+                    textAlign:  "center",
+                    lineHeight: 22,
+                  }}
+                >
+                  Hay muchas almas en oración ahora mismo.{"\n"}Tu reflexión llegará enseguida…
                 </Text>
               </View>
             )}
-            {mensajes.map((m) => <BurbujaChat key={m.id} mensaje={m} />)}
             {escribiendo && textoStreaming
               ? <BurbujaChat mensaje={{ id: "streaming", role: "assistant", content: textoStreaming }} />
               : escribiendo ? <BurbujaEscribiendo /> : null
@@ -704,8 +858,8 @@ export function LecturaDelDiaTab({ cargando, lectura, error, hoy, guardada, onGu
         <View style={{ height: 24 }} />
       </ScrollView>
 
-      {/* ── INPUT BAR CHAT IA (oculto temporalmente) ── */}
-      {MOSTRAR_CHAT_IA && (
+      {/* ── INPUT BAR CHAT (solo en modo reflexión guiada) ── */}
+      {modo === "chat" && (
         <ChatInputBar
           value={inputTexto}
           onChangeText={setInputTexto}

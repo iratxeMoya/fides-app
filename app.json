@@ -2,7 +2,7 @@
   "expo": {
     "name": "Fides",
     "slug": "fides-app",
-    "version": "1.2.5",
+    "version": "1.2.6",
     "scheme": "fides",
     "orientation": "portrait",
     "icon": "./assets/icons/fides_icon.png",

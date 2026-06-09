@@ -93,6 +93,18 @@ export async function deleteNotaPersonal(id: string): Promise<void> {
   await db.delete(chatMensajes).where(eq(chatMensajes.id, id));
 }
 
+/** Elimina todos los mensajes del chat IA para una fecha litúrgica (no toca notas personales). */
+export async function deleteMensajesChat(lecturaFecha: string): Promise<void> {
+  await db
+    .delete(chatMensajes)
+    .where(
+      and(
+        eq(chatMensajes.lecturaFecha, lecturaFecha),
+        ne(chatMensajes.role, "nota_personal")
+      )
+    );
+}
+
 // ─── Lecturas favoritas ───────────────────────────────────────────────────────
 
 /** Devuelve todas las lecturas guardadas, ordenadas por fecha descendente. */

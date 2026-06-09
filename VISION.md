@@ -35,12 +35,12 @@ Católico practicante hispanohablante, 25–55 años, con smartphone. No necesar
 | Base de datos local | Expo SQLite + Drizzle ORM |
 | Estado global | Zustand v5 |
 | Bottom sheets | @gorhom/bottom-sheet v5 |
-| IA | Claude Haiku (claude-haiku-4-5-20251001) vía API de Anthropic |
+| IA | NVIDIA NIM (meta/llama-3.1-8b-instruct) vía API compatible OpenAI |
 | CI/CD | GitHub Actions → EAS prebuild → IPA sin firmar (artifact) |
 
 ---
 
-## Estado actual — v1.2.5
+## Estado actual — v1.2.6
 
 ### Pantallas
 
@@ -128,17 +128,15 @@ Tab "Biblia" dentro de la pantalla Lectura. Tres vistas con navegación interna 
 Pantalla de detalle de iglesia accesible desde "Más información →" en la card expandida del mapa. Muestra nombre, dirección, mini-mapa de ubicación (o foto si está en OSM), horario semanal de misas, contacto (teléfono/web) y botón fijo "¿Horario incorrecto? Repórtalo" con mailto prefilled. La tab bar permanece visible (Stack anidado dentro del tab Mapa). Pendiente para iteración futura: horarios de hora santa y confesiones (requiere identificar fuente de datos).
 
 ### 6. Integración de IA con NVIDIA NIM
-Chat de reflexión sobre la lectura del día y recomendaciones de lecturas bíblicas específicas contextualizadas en el evangelio de cada jornada. El proveedor sería NVIDIA NIM en lugar de Claude, manteniendo la misma interfaz de streaming ya definida en `lib/api/chat.ts`. Las recomendaciones combinarían el texto del evangelio del día, el tiempo litúrgico calculado y el historial de lecturas guardadas del usuario para personalizar las sugerencias.
 
-Quiero dividir esta tarea en varias:
-#### 6.1. Agregar proveedor sin funcionalidades aun
-Añadir a la app el workflow de la IA, aun sin utilizarla activamente. Testear el workflow.
+#### ~~6.1. Agregar proveedor sin funcionalidades~~ ✓ *Implementado en v1.2.6*
+Proveedor NVIDIA NIM (`lib/api/nim.ts`) con interfaz idéntica a `lib/api/chat.ts`: `enviarMensajeChatNIM` (streaming SSE, `choices[0].delta.content`) y `generarCitaNIM` (no-streaming, caché 24 h). La API key se inyecta en `app.config.js` vía `NVIDIA_NIM_API_KEY` para builds EAS y vía `EXPO_PUBLIC_NVIDIA_NIM_API_KEY` para dev client con Metro inline. Tests unitarios en `tests/unit/nim.test.ts` cubren los dos métodos: auth Bearer, parsing SSE, key ausente, errores HTTP y caché.
 
-#### 6.2. Chat de reflexion
-En la lectura del dia, añadir las 2 opciones: reflexion personal o notas (simplemente notas para uno mismo) o reflexion guiada (chat con IA que preparado y configurado para entender el texto, contextualizarlo y reflexionar sobre ello como si hablaras con un teologo o cura)
+#### ~~6.2. Chat de reflexión~~ ✓ *Implementado en v1.2.6*
+En la pantalla "Del día" (tab Lectura), selector de dos modos tras el texto: **Mis notas** (notas personales libres, guardadas en SQLite, con CRUD completo) y **Reflexión guiada** (chat con NIM). Al activar la reflexión guiada, la IA abre la sesión con una pregunta sobre el evangelio del día sin esperar al usuario; cada respuesta termina con una nueva pregunta que profundiza la reflexión (estilo lectio divina, máximo 60 palabras). El historial se persiste en `chat_mensajes` (SQLite) por fecha litúrgica: si el usuario cierra y reabre la app, la conversación continúa desde donde la dejó. El historial del día siguiente empieza limpio.
 
 #### 6.3. Recomendaciones de lectura
-En base al texto de lectura del dia, recomendar en la pantalla de Recomendaciones libros, secciones de la biblia o textos de otros ambitos que ayuden a contextualizar o ampliar la lectura
+En base al texto de lectura del día, recomendar en la pantalla de Recomendaciones libros, secciones de la Biblia o textos de otros ámbitos que ayuden a contextualizar o ampliar la lectura.
 
 ### 7. Comunidad *(v3.0)*
 Registro y login de usuarios. Blog general de comunidad más subblogs temáticos o parroquiales abiertos al público — cualquiera puede unirse a uno o varios. Moderación automática por IA que filtra mensajes hirientes, desinformación y malas praxis antes de la publicación. Cada subforo cuenta además con un moderador humano como último recurso. La identidad de la plataforma es la misma que la app: recogida, sin engagement artificial, orientada a la reflexión compartida.
