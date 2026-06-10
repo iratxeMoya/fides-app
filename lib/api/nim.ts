@@ -20,7 +20,7 @@ const MODEL           = "meta/llama-3.1-8b-instruct";
 const MAX_TOKENS_CHAT = 600;
 const MAX_TOKENS_CITA = 80;
 const MAX_CHARS_CITA  = 500;
-const MAX_RETRIES     = 2;
+const MAX_RETRIES     = 4;
 // Espera máxima por intento aunque retry-after diga más (ms)
 const MAX_ESPERA_MS   = 30_000;
 
@@ -331,11 +331,11 @@ export async function generarRecomendacionesNIM(
       const data    = await res.json();
       const rawText = (data?.choices?.[0]?.message?.content as string | undefined)?.trim() ?? "";
 
-      // NIM a veces envuelve la respuesta en bloques ```json ... ```
-      const jsonStr = rawText
-        .replace(/^```(?:json)?\s*/i, "")
-        .replace(/\s*```$/, "")
-        .trim();
+      // Extraer el array JSON aunque NIM añada texto antes/después o bloques ```json
+      const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+      const jsonStr   = jsonMatch
+        ? jsonMatch[0]
+        : rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
 
       const parsed = JSON.parse(jsonStr) as Array<{
         libro:    string;
