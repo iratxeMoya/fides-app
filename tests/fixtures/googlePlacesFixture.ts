@@ -122,3 +122,72 @@ export const helloaoActs4Fixture = {
     ],
   },
 };
+
+/**
+ * Respuesta JSONP de universalis.com/europe.spain para un domingo con 2ª lectura.
+ * Simula: 10º Domingo del Tiempo Ordinario — Mc 9:9-13 / Hos 6:3-6 / Sal 16 / Rom 4:18-25
+ */
+export const universalisJsonpDomingoFixture = `universalisCallback(${JSON.stringify({
+  number: 20260607,
+  date: "Sunday 7 June 2026",
+  day: "<div><b>10th Sunday in Ordinary Time</b></div>",
+  Mass_R1: { heading: "Hosea",   source: "Hosea 6:3-6",     text: "<div>Venid, volvamos al Señor...</div>" },
+  Mass_Ps: { source: "Psalm 15(16):1-2,4-5,8,11" },
+  Mass_R2: { heading: "Romans",  source: "Romans 4:18&#x2010;25",  text: "<div>Abraham, contra toda esperanza...</div>" },
+  Mass_GA: { source: "cf.Ac16:14", text: "<div>Aleluya</div>" },
+  Mass_G:  { heading: "Matthew", source: "Matthew 9:9&#x2010;13", text: "<div>En aquel tiempo...</div>" },
+})})`;
+
+/**
+ * Respuesta JSONP de universalis.com/europe.spain para una feria (sin 2ª lectura).
+ * Usa referencias compatibles con helloaoMat9Fixture, helloaoActs4Fixture y helloaoPsalm16Fixture.
+ */
+export const universalisJsonpFeriaFixture = `universalisCallback(${JSON.stringify({
+  number: 20260610,
+  date: "Wednesday 10 June 2026",
+  day: "<div><b>Wednesday of week 10 in Ordinary Time</b></div>",
+  Mass_R1: { heading: "Acts",    source: "Acts 4:8-12",            text: "<div>Pedro...</div>" },
+  Mass_Ps: { source: "Psalm 15(16):1-2,4-5,8,11" },
+  Mass_G:  { heading: "Matthew", source: "Matthew 9:9-13", text: "<div>En aquel tiempo...</div>" },
+})})`;
+
+/** Respuesta de bible.helloao.org/api/spa_blm/MAT/9.json (simplificada) */
+export const helloaoMat9Fixture = {
+  chapter: {
+    number: 9,
+    content: [
+      { type: "verse", number: 9,  content: [{ text: "Al salir de allí, Jesús vio a un hombre llamado Mateo..." }] },
+      { type: "verse", number: 10, content: [{ text: "Mientras Jesús estaba a la mesa en casa de Mateo..." }] },
+      { type: "verse", number: 11, content: [{ text: "Al ver esto, los fariseos preguntaron a sus discípulos..." }] },
+      { type: "verse", number: 12, content: [{ text: "Jesús lo oyó y dijo: No son los sanos los que necesitan médico..." }] },
+      { type: "verse", number: 13, content: [{ text: "Id a aprender qué significa: Misericordia quiero y no sacrificio." }] },
+    ],
+  },
+};
+
+/** Respuesta de bible.helloao.org/api/spa_blm/ROM/4.json (simplificada) */
+export const helloaoRom4Fixture = {
+  chapter: {
+    number: 4,
+    content: [
+      { type: "verse", number: 18, content: [{ text: "Abraham, contra toda esperanza, creyó y esperó..." }] },
+      { type: "verse", number: 19, content: [{ text: "Sin debilitarse en la fe, se fijó en su cuerpo..." }] },
+      { type: "verse", number: 25, content: [{ text: "Fue entregado por nuestros pecados y resucitó para nuestra justificación." }] },
+    ],
+  },
+};
+
+/** Respuesta de bible.helloao.org/api/spa_blm/PSA/16.json — salmo con rangos discontinuos */
+export const helloaoPsalm16Fixture = {
+  chapter: {
+    number: 16,
+    content: [
+      { type: "verse", number: 1,  content: [{ text: "Protégeme, Dios mío, que me refugio en ti." }] },
+      { type: "verse", number: 2,  content: [{ text: "Yo digo al Señor: Tú eres mi bien." }] },
+      { type: "verse", number: 4,  content: [{ text: "Multiplicarán sus dolores los que corren tras dioses ajenos." }] },
+      { type: "verse", number: 5,  content: [{ text: "El Señor es el lote de mi herencia y mi copa." }] },
+      { type: "verse", number: 8,  content: [{ text: "Tengo siempre presente al Señor." }] },
+      { type: "verse", number: 11, content: [{ text: "Me enseñarás el sendero de la vida." }] },
+    ],
+  },
+};

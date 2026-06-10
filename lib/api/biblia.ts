@@ -1,14 +1,16 @@
 /**
  * Módulo de lecturas bíblicas.
  *
- * Lectura del día  →  cpbjr.github.io/catholic-readings-api  (referencia USCCB)
- *                     + bible.helloao.org/api/spa_blm         (texto español, incluye deuterocanónicos)
+ * Lectura del día  →  universalis.com/europe.spain  (calendario CEE, fuente primaria)
+ *                     + cpbjr.github.io/catholic-readings-api  (fallback USCCB)
+ *                     + bible.helloao.org/api/spa_blm  (texto español, incluye deuterocanónicos)
  *
  * Búsqueda de pasaje  →  bible.helloao.org/api/spa_blm (mismo motor)
  */
 
 import { ok, tryCatch, type Result } from "./result";
 import { apiCache, TTL_1H, TTL_24H } from "./cache";
+import { getUniversalisDay } from "./universalis";
 import { calcularTiempoLiturgico, COLOR_LITURGICO, NOMBRE_TIEMPO_LITURGICO } from "@/constants/liturgical";
 
 // ─── URLs ─────────────────────────────────────────────────────────────────────
@@ -33,6 +35,8 @@ export type LecturaDelDia = {
   primeraLectura?: { referencia: string; texto: string };
   /** Salmo responsorial (si está disponible) */
   salmo?: { referencia: string; texto: string };
+  /** Segunda lectura — domingos y solemnidades */
+  segundaLectura?: { referencia: string; texto: string };
   /** Color litúrgico del día */
   colorLiturgico: string;
 };
@@ -189,10 +193,118 @@ async function fetchPassageText(ref: string): Promise<string | null> {
   return text || null;
 }
 
+/**
+ * Versión multi-rango de parseRef para salmos con versículos discontinuos.
+ * "Psalm 118:1, 8-9, 21-23" → tres ParsedRef para el mismo capítulo.
+ */
+function parseAllRanges(ref: string): ParsedRef[] {
+  const colonIdx = ref.indexOf(":");
+  if (colonIdx === -1) {
+    const r = parseRef(ref);
+    return r ? [r] : [];
+  }
+
+  const bookChapter = ref.slice(0, colonIdx).trim();
+  const rangePart   = ref.slice(colonIdx + 1);
+
+  const m = bookChapter.match(/^(.*?)\s+(\d+)$/);
+  if (!m) return [];
+  const bookId  = BOOK_ID[m[1].trim()];
+  const chapter = parseInt(m[2], 10);
+  if (!bookId) return [];
+
+  return rangePart
+    .split(",")
+    .map((s) => {
+      const clean = s.trim().replace(/[a-c]/gi, "");
+      const parts = clean.split("-").map(Number);
+      if (isNaN(parts[0])) return null;
+      return { bookId, chapter, verseStart: parts[0], verseEnd: parts[1] ?? parts[0] };
+    })
+    .filter((r): r is ParsedRef => r !== null);
+}
+
+/**
+ * Obtiene el texto de una referencia que puede tener rangos discontinuos.
+ * Hace una sola petición HTTP y extrae todos los fragmentos del capítulo.
+ * Para referencias de rango único delega en fetchPassageText (mismo resultado).
+ */
+async function fetchPassageTextMultiRange(ref: string): Promise<string | null> {
+  const ranges = parseAllRanges(ref);
+  if (ranges.length <= 1) return fetchPassageText(ref);
+
+  const { bookId, chapter } = ranges[0];
+  const res = await fetch(`${URL_HELLOAO}/${bookId}/${chapter}.json`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const content: HelloaoVerse[] = data.chapter?.content ?? [];
+  const fragments = ranges
+    .map((r) => versesToText(content, r.verseStart, r.verseEnd))
+    .filter(Boolean);
+  return fragments.length > 0 ? fragments.join("\n") : null;
+}
+
 // ─── getLecturaDelDia ─────────────────────────────────────────────────────────
+
+/** Fallback con el leccionario CPBJR (USCCB) + texto de HelloAO. */
+async function getLecturaDelDiaFallback(
+  date: Date,
+  cacheKey: string
+): Promise<Result<LecturaDelDia>> {
+  const y  = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+
+  return tryCatch(async () => {
+    const refRes = await fetch(`${URL_CPBJR}/${y}/${mm}-${dd}.json`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!refRes.ok) throw new Error(`Lectionary API respondió ${refRes.status}`);
+
+    const refData: CpbjrDay = await refRes.json();
+    const gospelRef = refData.readings?.gospel;
+    if (!gospelRef) throw new Error("La respuesta no contiene el Evangelio del día");
+
+    const gospelText = await fetchPassageText(gospelRef);
+    if (!gospelText) throw new Error(`No se pudo obtener el texto del Evangelio: "${gospelRef}"`);
+
+    const firstRef  = refData.readings?.firstReading;
+    const psalmRef  = refData.readings?.psalm;
+    const secondRef = refData.readings?.secondReading;
+
+    const [firstText, psalmText, secondText] = await Promise.all([
+      firstRef  ? fetchPassageText(firstRef).catch(() => null)          : Promise.resolve(null),
+      psalmRef  ? fetchPassageTextMultiRange(psalmRef).catch(() => null) : Promise.resolve(null),
+      secondRef ? fetchPassageText(secondRef).catch(() => null)         : Promise.resolve(null),
+    ]);
+
+    const tiempo = calcularTiempoLiturgico(date);
+    const lectura: LecturaDelDia = {
+      titulo:         NOMBRE_TIEMPO_LITURGICO[tiempo],
+      colorLiturgico: COLOR_LITURGICO[tiempo],
+      referencia:     gospelRef,
+      texto:          gospelText,
+      evangelio:      gospelRef,
+      ...(firstRef  && firstText  ? { primeraLectura:  { referencia: firstRef,  texto: firstText  } } : {}),
+      ...(psalmRef  && psalmText  ? { salmo:           { referencia: psalmRef,  texto: psalmText  } } : {}),
+      ...(secondRef && secondText ? { segundaLectura:  { referencia: secondRef, texto: secondText } } : {}),
+    };
+
+    apiCache.set(cacheKey, lectura, TTL_24H);
+    return lectura;
+  }, "getLecturaDelDia");
+}
 
 /**
  * Devuelve la lectura litúrgica del día.
+ *
+ * Fuente primaria: Universalis Spain (calendario CEE).
+ * Fallback: CPBJR (calendario USCCB) si Universalis no responde o la fecha
+ * está fuera de su ventana disponible (~3 días pasados / ~9 días futuros).
+ *
  * Cachea el resultado 24 horas (las lecturas solo cambian a medianoche).
  */
 export async function getLecturaDelDia(
@@ -206,44 +318,43 @@ export async function getLecturaDelDia(
   const cached = apiCache.get<LecturaDelDia>(cacheKey);
   if (cached) return ok(cached);
 
-  return tryCatch(async () => {
-    // 1. Obtener referencias del leccionario
-    const refRes = await fetch(`${URL_CPBJR}/${y}/${mm}-${dd}.json`, {
-      headers: { Accept: "application/json" },
-    });
-    if (!refRes.ok) throw new Error(`Lectionary API respondió ${refRes.status}`);
-
-    const refData: CpbjrDay = await refRes.json();
-    const gospelRef = refData.readings?.gospel;
-    if (!gospelRef) throw new Error("La respuesta no contiene el Evangelio del día");
-
-    // 2. Texto del Evangelio (obligatorio)
-    const gospelText = await fetchPassageText(gospelRef);
-    if (!gospelText) throw new Error(`No se pudo obtener el texto del Evangelio: "${gospelRef}"`);
-
-    // 3. Primera lectura y salmo en paralelo (opcionales, los fallos no bloquean)
-    const firstRef = refData.readings?.firstReading;
-    const psalmRef = refData.readings?.psalm;
-
-    const [firstText, psalmText] = await Promise.all([
-      firstRef ? fetchPassageText(firstRef).catch(() => null) : Promise.resolve(null),
-      psalmRef ? fetchPassageText(psalmRef).catch(() => null) : Promise.resolve(null),
-    ]);
-
+  // ── Fuente primaria: Universalis Spain (calendario CEE) ──
+  const univResult = await getUniversalisDay(date);
+  if (univResult.ok) {
+    const { readings } = univResult.data;
     const tiempo = calcularTiempoLiturgico(date);
-    const lectura: LecturaDelDia = {
-      titulo:         NOMBRE_TIEMPO_LITURGICO[tiempo],
-      colorLiturgico: COLOR_LITURGICO[tiempo],
-      referencia:     gospelRef,
-      texto:          gospelText,
-      evangelio:      gospelRef,
-      ...(firstRef && firstText ? { primeraLectura: { referencia: firstRef, texto: firstText } } : {}),
-      ...(psalmRef && psalmText ? { salmo: { referencia: psalmRef, texto: psalmText } } : {}),
-    };
 
-    apiCache.set(cacheKey, lectura, TTL_24H);
-    return lectura;
-  }, "getLecturaDelDia");
+    const univDayResult = await tryCatch(async () => {
+      const [gospelText, firstText, psalmText, secondText] = await Promise.all([
+        fetchPassageText(readings.gospel.source),
+        readings.firstReading  ? fetchPassageText(readings.firstReading.source).catch(() => null)          : Promise.resolve(null),
+        readings.psalm         ? fetchPassageTextMultiRange(readings.psalm.source).catch(() => null)        : Promise.resolve(null),
+        readings.secondReading ? fetchPassageText(readings.secondReading.source).catch(() => null)         : Promise.resolve(null),
+      ]);
+
+      if (!gospelText) throw new Error(`Sin texto del Evangelio: "${readings.gospel.source}"`);
+
+      const lectura: LecturaDelDia = {
+        titulo:         NOMBRE_TIEMPO_LITURGICO[tiempo],
+        colorLiturgico: COLOR_LITURGICO[tiempo],
+        referencia:     readings.gospel.source,
+        texto:          gospelText,
+        evangelio:      readings.gospel.source,
+        ...(readings.firstReading  && firstText  ? { primeraLectura:  { referencia: readings.firstReading.source,  texto: firstText  } } : {}),
+        ...(readings.psalm         && psalmText  ? { salmo:           { referencia: readings.psalm.source,         texto: psalmText  } } : {}),
+        ...(readings.secondReading && secondText ? { segundaLectura:  { referencia: readings.secondReading.source, texto: secondText } } : {}),
+      };
+
+      apiCache.set(cacheKey, lectura, TTL_24H);
+      return lectura;
+    }, "getLecturaDelDia:universalis");
+
+    if (univDayResult.ok) return univDayResult;
+    // Si el fetch de textos falló, cae al fallback CPBJR
+  }
+
+  // ── Fallback: CPBJR (USCCB) + HelloAO ──
+  return getLecturaDelDiaFallback(date, cacheKey);
 }
 
 // ─── getCapitulo ─────────────────────────────────────────────────────────────

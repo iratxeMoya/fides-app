@@ -660,6 +660,15 @@ export function LecturaDelDiaTab({ cargando, lectura, error, hoy, guardada, onGu
           />
         )}
 
+        {/* ── SEGUNDA LECTURA ── */}
+        {lectura.segundaLectura && (
+          <SeccionLectura
+            etiqueta="Segunda Lectura"
+            referencia={translateRefES(lectura.segundaLectura.referencia)}
+            texto={lectura.segundaLectura.texto}
+          />
+        )}
+
         {/* ── EVANGELIO ── */}
         <SeccionLectura
           etiqueta="Evangelio"
@@ -667,6 +676,11 @@ export function LecturaDelDiaTab({ cargando, lectura, error, hoy, guardada, onGu
           texto={lectura.texto}
           esEvangelio
         />
+
+        {/* ── ATRIBUCIÓN ── */}
+        <Text style={{ color: "#666666", fontSize: 11, marginTop: 4, marginBottom: 8 }}>
+          Texto: Biblia de La Merced (spa_blm). El texto proclamado en la liturgia puede diferir.
+        </Text>
 
         {/* ── GUARDAR EN FAVORITOS ── */}
         <Pressable
@@ -679,6 +693,7 @@ export function LecturaDelDiaTab({ cargando, lectura, error, hoy, guardada, onGu
                 const secciones: {
                   primeraLectura?: { referencia: string; texto: string };
                   salmo?:          { referencia: string; texto: string };
+                  segundaLectura?: { referencia: string; texto: string };
                   evangelio:       { referencia: string; texto: string };
                 } = {
                   evangelio: {
@@ -696,6 +711,12 @@ export function LecturaDelDiaTab({ cargando, lectura, error, hoy, guardada, onGu
                   secciones.salmo = {
                     referencia: translateRefES(lectura.salmo.referencia),
                     texto:      lectura.salmo.texto,
+                  };
+                }
+                if (lectura.segundaLectura) {
+                  secciones.segundaLectura = {
+                    referencia: translateRefES(lectura.segundaLectura.referencia),
+                    texto:      lectura.segundaLectura.texto,
                   };
                 }
                 await saveLecturaFavorita({

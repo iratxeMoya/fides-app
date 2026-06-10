@@ -125,11 +125,23 @@ function ListaLibros({
 
   return (
     <View style={{ flex: 1 }}>
+      <Text
+        style={{
+          fontFamily:        "Inter_400Regular",
+          fontSize:          11,
+          color:             "#555555",
+          paddingHorizontal: 20,
+          paddingTop:        12,
+          paddingBottom:     4,
+        }}
+      >
+        Traducción: Biblia de La Merced (BLM)
+      </Text>
       {/* Buscador */}
       <View
         style={{
           paddingHorizontal: 20,
-          paddingTop:        12,
+          paddingTop:        8,
           paddingBottom:     8,
         }}
       >
