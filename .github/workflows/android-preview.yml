@@ -26,6 +26,11 @@ jobs:
     - name: Install dependencies
       run: npm install --legacy-peer-deps
 
+    - name: Create .env file
+      run: |
+        echo "NVIDIA_NIM_API_KEY=${{ secrets.NVIDIA_NIM_API_KEY }}" >> .env
+        echo "EXPO_PUBLIC_NVIDIA_NIM_API_KEY=${{ secrets.NVIDIA_NIM_API_KEY }}" >> .env
+
     - name: Generate Android native project
       run: EXPO_NO_GIT_STATUS_CHECK=1 npx expo prebuild --platform android --no-install
 
