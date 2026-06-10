@@ -571,8 +571,16 @@ function LectorCapitulo({
 
 // ─── BibliaTab ────────────────────────────────────────────────────────────────
 
-export function BibliaTab() {
-  const [vista, setVista]                   = useState<Vista>({ tipo: "libros" });
+export type BibliaNavTarget = { osis: string; capitulo: number };
+
+export function BibliaTab({ navTarget }: { navTarget?: BibliaNavTarget }) {
+  const [vista, setVista] = useState<Vista>(() => {
+    if (navTarget) {
+      const libro = LIBROS_BIBLIA.find((l) => l.osis === navTarget.osis);
+      if (libro) return { tipo: "lector", libro, capitulo: navTarget.capitulo };
+    }
+    return { tipo: "libros" };
+  });
   const [ultimoCapitulo, setUltimoCapitulo] = useState<Record<string, number>>({});
 
   function abrirCapitulos(libro: LibroBiblia) {

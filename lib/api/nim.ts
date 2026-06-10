@@ -11,6 +11,7 @@ import { ok, err, tryCatch, type Result } from "./result";
 import { apiCache, TTL_24H } from "./cache";
 import type { MensajeChatLocal } from "./chat";
 import type { LecturaDelDia } from "./biblia";
+import { LIBROS_BIBLIA } from "@/constants/biblia";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -30,6 +31,13 @@ export type CitaInspiradaNIM = {
   fecha: string;
 };
 
+export type RecomendacionBiblica = {
+  osis:       string;
+  capitulo:   number;
+  referencia: string;
+  motivo:     string;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -40,6 +48,10 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
       reject(new DOMException("Aborted", "AbortError"));
     }, { once: true });
   });
+}
+
+function normalizarNombre(s: string): string {
+  return s.normalize("NFD").replace(/\p{Mn}/gu, "").toLowerCase().trim();
 }
 
 function retryAfterMs(headers: Headers): number {
@@ -250,4 +262,111 @@ export async function generarCitaNIM(
       return cita;
     }
   }, "generarCitaNIM");
+}
+
+// ─── Recomendaciones de pasajes bíblicos ─────────────────────────────────────
+
+/**
+ * Genera 2-3 pasajes bíblicos relacionados con el evangelio del día.
+ * Devuelve referencias navegables directamente en el lector bíblico.
+ */
+export async function generarRecomendacionesNIM(
+  textoEvangelio: string,
+  date: Date = new Date(),
+): Promise<Result<RecomendacionBiblica[]>> {
+  const apiKey = Config.nvidiaApiKey;
+  if (!apiKey) return err("NVIDIA_NIM_API_KEY no está configurada");
+
+  const fecha    = date.toISOString().split("T")[0];
+  const cacheKey = `recomendaciones-nim:${fecha}`;
+
+  const cached = apiCache.get<RecomendacionBiblica[]>(cacheKey);
+  if (cached) return ok(cached);
+
+  return tryCatch(async () => {
+    const fragmento    = textoEvangelio.slice(0, MAX_CHARS_CITA).trim();
+    const nombresLibros = LIBROS_BIBLIA.map((l) => l.nombre).join(", ");
+    let intentos = 0;
+
+    while (true) {
+      const res = await fetch(NIM_CHAT_URL, {
+        method:  "POST",
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model:      MODEL,
+          max_tokens: 300,
+          stream:     false,
+          messages: [
+            {
+              role:    "user",
+              content: [
+                "Dado el siguiente fragmento del Evangelio del día, sugiere exactamente 2 o 3 pasajes",
+                "bíblicos (un capítulo por sugerencia) que complementen o profundicen su mensaje.",
+                "Responde ÚNICAMENTE con un array JSON válido, sin texto adicional, con este formato:",
+                '[{"libro":"nombre","capitulo":N,"motivo":"frase de 6 a 10 palabras"}]',
+                `Usa exactamente uno de estos nombres para el campo "libro": ${nombresLibros}.`,
+                "",
+                "Evangelio:",
+                fragmento,
+              ].join("\n"),
+            },
+          ],
+        }),
+      });
+
+      if (res.status === 429 && intentos < MAX_RETRIES) {
+        intentos++;
+        await sleep(retryAfterMs(res.headers));
+        continue;
+      }
+
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => "");
+        throw new Error(`NIM API respondió ${res.status}: ${errBody.slice(0, 200)}`);
+      }
+
+      const data    = await res.json();
+      const rawText = (data?.choices?.[0]?.message?.content as string | undefined)?.trim() ?? "";
+
+      // NIM a veces envuelve la respuesta en bloques ```json ... ```
+      const jsonStr = rawText
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "")
+        .trim();
+
+      const parsed = JSON.parse(jsonStr) as Array<{
+        libro:    string;
+        capitulo: number;
+        motivo:   string;
+      }>;
+
+      const recomendaciones: RecomendacionBiblica[] = [];
+      for (const item of parsed.slice(0, 3)) {
+        const normItem = normalizarNombre(item.libro);
+        const lib = LIBROS_BIBLIA.find(
+          (l) =>
+            normalizarNombre(l.nombre) === normItem ||
+            normalizarNombre(l.abrev)  === normItem
+        );
+        if (!lib) continue;
+        const cap = Math.max(1, Math.min(Math.floor(item.capitulo ?? 1), lib.capitulos));
+        recomendaciones.push({
+          osis:       lib.osis,
+          capitulo:   cap,
+          referencia: `${lib.nombre} ${cap}`,
+          motivo:     String(item.motivo ?? "").trim(),
+        });
+      }
+
+      if (recomendaciones.length === 0) {
+        throw new Error("No se encontraron recomendaciones válidas en la respuesta");
+      }
+
+      apiCache.set(cacheKey, recomendaciones, TTL_24H);
+      return recomendaciones;
+    }
+  }, "generarRecomendacionesNIM");
 }

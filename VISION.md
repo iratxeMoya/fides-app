@@ -40,7 +40,7 @@ Católico practicante hispanohablante, 25–55 años, con smartphone. No necesar
 
 ---
 
-## Estado actual — v1.2.6
+## Estado actual — v1.2.7
 
 ### Pantallas
 
@@ -135,8 +135,8 @@ Proveedor NVIDIA NIM (`lib/api/nim.ts`) con interfaz idéntica a `lib/api/chat.t
 #### ~~6.2. Chat de reflexión~~ ✓ *Implementado en v1.2.6*
 En la pantalla "Del día" (tab Lectura), selector de dos modos tras el texto: **Mis notas** (notas personales libres, guardadas en SQLite, con CRUD completo) y **Reflexión guiada** (chat con NIM). Al activar la reflexión guiada, la IA abre la sesión con una pregunta sobre el evangelio del día sin esperar al usuario; cada respuesta termina con una nueva pregunta que profundiza la reflexión (estilo lectio divina, máximo 60 palabras). El historial se persiste en `chat_mensajes` (SQLite) por fecha litúrgica: si el usuario cierra y reabre la app, la conversación continúa desde donde la dejó. El historial del día siguiente empieza limpio.
 
-#### 6.3. Recomendaciones de lectura
-En base al texto de lectura del día, recomendar en la pantalla de Recomendaciones libros, secciones de la Biblia o textos de otros ámbitos que ayuden a contextualizar o ampliar la lectura.
+#### ~~6.3. Recomendaciones de lectura~~ ✓ *Implementado en v1.2.7*
+En la pantalla "Del día", sección "Para profundizar" tras el evangelio: NIM genera 2-3 pasajes bíblicos relacionados con el texto del día, con una frase motivadora cada uno. Al pulsar una card se abre directamente el capítulo correspondiente en el lector bíblico (tab Biblia). Caché 24 h por fecha. Reintentos silenciosos en caso de rate limit; botón "Reintentar" visible si la llamada falla.
 
 ### 7. Comunidad *(v3.0)*
 Registro y login de usuarios. Blog general de comunidad más subblogs temáticos o parroquiales abiertos al público — cualquiera puede unirse a uno o varios. Moderación automática por IA que filtra mensajes hirientes, desinformación y malas praxis antes de la publicación. Cada subforo cuenta además con un moderador humano como último recurso. La identidad de la plataforma es la misma que la app: recogida, sin engagement artificial, orientada a la reflexión compartida.

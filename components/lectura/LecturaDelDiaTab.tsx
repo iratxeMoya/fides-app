@@ -33,7 +33,8 @@ import {
   saveMensajeChat,
   deleteMensajesChat,
 } from "@/lib/db/queries";
-import { NotasPersonales } from "@/components/lectura/NotasPersonales";
+import { NotasPersonales }         from "@/components/lectura/NotasPersonales";
+import { RecomendacionesDelDia }   from "@/components/lectura/RecomendacionesDelDia";
 
 // ─── Color litúrgico ──────────────────────────────────────────────────────────
 
@@ -379,11 +380,12 @@ type Props = {
   hoy:               Date;
   guardada:          boolean;
   onGuardadaChange:  (v: boolean) => void;
+  onAbrirBiblia?:    (osis: string, capitulo: number) => void;
 };
 
 type ModoReflexion = "notas" | "chat";
 
-export function LecturaDelDiaTab({ cargando, lectura, error, hoy, guardada, onGuardadaChange }: Props) {
+export function LecturaDelDiaTab({ cargando, lectura, error, hoy, guardada, onGuardadaChange, onAbrirBiblia }: Props) {
   const insets     = useSafeAreaInsets();
   const scrollRef  = useRef<ScrollView>(null);
   const abortRef   = useRef<AbortController | null>(null);
@@ -746,6 +748,15 @@ export function LecturaDelDiaTab({ cargando, lectura, error, hoy, guardada, onGu
             </Text>
           </View>
         </Pressable>
+
+        {/* ── RECOMENDACIONES DE LECTURA ── */}
+        {onAbrirBiblia && (
+          <RecomendacionesDelDia
+            textoEvangelio={lectura.texto}
+            hoy={hoy}
+            onAbrirCapitulo={onAbrirBiblia}
+          />
+        )}
 
         {/* ── DIVISOR ── */}
         <View

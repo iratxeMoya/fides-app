@@ -7,7 +7,7 @@ import { getLecturasFavoritas }    from "@/lib/db/queries";
 import { LecturaDelDiaTab }        from "@/components/lectura/LecturaDelDiaTab";
 import { LecturasRecomendadasTab } from "@/components/lectura/LecturasRecomendadasTab";
 import { GuardadosTab }            from "@/components/lectura/GuardadosTab";
-import { BibliaTab }               from "@/components/lectura/BibliaTab";
+import { BibliaTab, type BibliaNavTarget } from "@/components/lectura/BibliaTab";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -101,11 +101,22 @@ function TabHeader({
 export default function LecturaScreen() {
   const hoy = useMemo(() => new Date(), []);
 
-  const [tabActivo,  setTabActivo]  = useState<Tab>("lecturas");
-  const [cargando,   setCargando]   = useState(true);
-  const [lectura,    setLectura]    = useState<LecturaDelDia | null>(null);
-  const [error,      setError]      = useState<string | null>(null);
-  const [guardada,   setGuardada]   = useState(false);
+  const [tabActivo,    setTabActivo]    = useState<Tab>("lecturas");
+  const [cargando,     setCargando]     = useState(true);
+  const [lectura,      setLectura]      = useState<LecturaDelDia | null>(null);
+  const [error,        setError]        = useState<string | null>(null);
+  const [guardada,     setGuardada]     = useState(false);
+  const [bibliaTarget, setBibliaTarget] = useState<BibliaNavTarget | null>(null);
+
+  const handleTabChange = useCallback((t: Tab) => {
+    if (t !== "biblia") setBibliaTarget(null);
+    setTabActivo(t);
+  }, []);
+
+  const handleAbrirBiblia = useCallback((osis: string, capitulo: number) => {
+    setBibliaTarget({ osis, capitulo });
+    setTabActivo("biblia");
+  }, []);
 
   // Calcular el ID del favorito de hoy una sola vez
   const favId = useMemo(() => {
@@ -138,7 +149,7 @@ export default function LecturaScreen() {
       edges={["top"]}
     >
       {/* ── Tabs internos ── */}
-      <TabHeader tabActivo={tabActivo} onChange={setTabActivo} />
+      <TabHeader tabActivo={tabActivo} onChange={handleTabChange} />
 
       {/* ── Contenido activo ── */}
       {tabActivo === "lecturas" ? (
@@ -149,13 +160,14 @@ export default function LecturaScreen() {
           hoy={hoy}
           guardada={guardada}
           onGuardadaChange={setGuardada}
+          onAbrirBiblia={handleAbrirBiblia}
         />
       ) : tabActivo === "recomendadas" ? (
         <LecturasRecomendadasTab />
       ) : tabActivo === "guardados" ? (
         <GuardadosTab active={true} />
       ) : (
-        <BibliaTab />
+        <BibliaTab navTarget={bibliaTarget ?? undefined} />
       )}
     </SafeAreaView>
   );
