@@ -78,6 +78,7 @@ export type IglesiaDetalle = {
   lng: number;
   telefono?: string;
   web?: string;
+  openingHours?: string;
   horarios: HorarioMisa[];
   fotosRefs: string[];
   image?: string;
@@ -232,39 +233,120 @@ export function parseOsmOpeningHours(value: string): HorarioMisa[] {
 
 // ─── Helpers isOpenNow ────────────────────────────────────────────────────────
 
-function isOpenNow(openingHours: string): boolean {
-  const JS_TO_OSM = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
-  const now = new Date();
-  const todayOsm = JS_TO_OSM[now.getDay()];
+function diaEsAIdx(s: string): number {
+  const n = s.toLowerCase().normalize("NFD").replace(/\p{Mn}/gu, "");
+  if (n.startsWith("dom")) return 0;
+  if (n.startsWith("lun")) return 1;
+  if (n.startsWith("mar")) return 2;
+  if (n.startsWith("mie")) return 3;
+  if (n.startsWith("jue")) return 4;
+  if (n.startsWith("vie")) return 5;
+  if (n.startsWith("sab")) return 6;
+  return -1;
+}
+
+function segmentoCubreHoy(seg: string, todayIdx: number): boolean {
+  if (/todos\s+los\s+d[íi]as/i.test(seg) || /cada\s+d[íi]a/i.test(seg)) return true;
+
+  const DIA_PAT = "lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?";
+
+  // Sin ningún día mencionado → aplica todos los días (ej: "8:00-21:00")
+  if (!new RegExp(`\\b(${DIA_PAT})\\b`, "i").test(seg)) return true;
+
+  // Rangos "DíaA a DíaB" (ej: "Lunes a Viernes")
+  const rangoRe = new RegExp(`\\b(${DIA_PAT})\\s+a\\s+(${DIA_PAT})\\b`, "gi");
+  const segSinRangos = seg.replace(rangoRe, (_, d1, d2) => {
+    const from = diaEsAIdx(d1);
+    const to   = diaEsAIdx(d2);
+    if (from === -1 || to === -1) return _;
+    let i = from;
+    while (true) {
+      if (i === todayIdx) return "HOY_ENCONTRADO";
+      if (i === to) break;
+      i = (i + 1) % 7;
+    }
+    return _;
+  });
+  if (segSinRangos.includes("HOY_ENCONTRADO")) return true;
+
+  // Días sueltos enumerados (ej: "Lunes, miércoles y viernes")
+  const diasRe = new RegExp(`\\b(${DIA_PAT})\\b`, "gi");
+  for (const m of segSinRangos.matchAll(diasRe)) {
+    if (diaEsAIdx(m[1]) === todayIdx) return true;
+  }
+  return false;
+}
+
+/**
+ * Devuelve true si el string de opening_hours indica que el lugar está abierto ahora.
+ * Soporta tanto formato OSM (Mo-Fr 09:00-18:00; Sa 10:00-14:00; 24/7)
+ * como texto libre en español de misas.org ("Lunes a Viernes 9:00 a 14:00").
+ */
+export function isOpenNow(openingHours: string): boolean {
+  const raw = openingHours.trim();
+
+  // Siempre abierto
+  if (/^24\/7$/.test(raw) || /24\s*h(oras?)?/i.test(raw) || /todo\s+el\s+d[íi]a/i.test(raw)) return true;
+
+  const now        = new Date();
   const currentMins = now.getHours() * 60 + now.getMinutes();
 
-  for (const rule of openingHours.split(";").map((r) => r.trim()).filter(Boolean)) {
-    const firstTimePos = rule.search(/\d{2}:\d{2}/);
-    if (firstTimePos === -1) continue;
+  // ── Formato OSM (contiene abreviaturas Mo/Tu/… o punto y coma) ─────────────
+  if (/\b(Mo|Tu|We|Th|Fr|Sa|Su|PH)\b/.test(raw) || raw.includes(";")) {
+    const JS_TO_OSM = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
+    const todayOsm  = JS_TO_OSM[now.getDay()];
 
-    const dayPart = rule.slice(0, firstTimePos).trim();
-    const timePart = rule.slice(firstTimePos).trim();
+    for (const rule of raw.split(";").map((r) => r.trim()).filter(Boolean)) {
+      const firstTimePos = rule.search(/\d{2}:\d{2}/);
+      if (firstTimePos === -1) continue;
 
-    let dayKeys: string[];
-    if (!dayPart) dayKeys = Array.from(ALL_DAYS_KEYS);
-    else if (dayPart.includes(",")) dayKeys = dayPart.split(",").flatMap((p) => {
-      const part = p.trim();
-      return part.includes("-") ? expandDayRange(part) : [part];
-    });
-    else if (dayPart.includes("-")) dayKeys = expandDayRange(dayPart);
-    else dayKeys = [dayPart];
+      const dayPart = rule.slice(0, firstTimePos).trim();
+      const timePart = rule.slice(firstTimePos).trim();
 
-    if (!dayKeys.includes(todayOsm)) continue;
+      let dayKeys: string[];
+      if (!dayPart)                  dayKeys = Array.from(ALL_DAYS_KEYS);
+      else if (dayPart.includes(",")) dayKeys = dayPart.split(",").flatMap((p) => {
+        const part = p.trim();
+        return part.includes("-") ? expandDayRange(part) : [part];
+      });
+      else if (dayPart.includes("-")) dayKeys = expandDayRange(dayPart);
+      else                            dayKeys = [dayPart];
 
-    const rangeMatch = timePart.match(/(\d{2}:\d{2})-(\d{2}:\d{2})/);
-    if (rangeMatch) {
-      // Formato opening_hours: rango HH:MM-HH:MM
-      if (currentMins >= timeToMins(rangeMatch[1]) && currentMins < timeToMins(rangeMatch[2])) return true;
-    } else {
-      // Formato service_times: tiempos directos — la misa dura ~90 min
-      if (isNowInDirectTimes(timePart, currentMins)) return true;
+      if (!dayKeys.includes(todayOsm)) continue;
+
+      const rangeMatch = timePart.match(/(\d{2}:\d{2})-(\d{2}:\d{2})/);
+      if (rangeMatch) {
+        if (currentMins >= timeToMins(rangeMatch[1]) && currentMins < timeToMins(rangeMatch[2])) return true;
+      } else {
+        if (isNowInDirectTimes(timePart, currentMins)) return true;
+      }
     }
+    return false;
   }
+
+  // ── Formato texto libre español (misas.org campo "open") ───────────────────
+  const todayIdx = now.getDay(); // 0=Dom, 1=Lun, …
+
+  for (const seg of raw.split("\n").map((s) => s.replace(/^[-•*]\s*/, "").trim()).filter(Boolean)) {
+    if (!segmentoCubreHoy(seg, todayIdx)) continue;
+
+    // Rangos horarios: "H:MM a H:MM", "H:MM-H:MM" o "H:MM–H:MM"
+    const timeRangeRe = /(\d{1,2}:\d{2})\s*(?:[-–]|a)\s*(\d{1,2}:\d{2})/g;
+    let match: RegExpExecArray | null;
+    let hayRangos = false;
+    while ((match = timeRangeRe.exec(seg)) !== null) {
+      hayRangos = true;
+      const [h1, m1] = match[1].split(":").map(Number);
+      const [h2, m2] = match[2].split(":").map(Number);
+      const start = h1 * 60 + m1;
+      const end   = (h2 === 0 && m2 === 0) ? 24 * 60 : h2 * 60 + m2;
+      if (currentMins >= start && currentMins < end) return true;
+    }
+
+    // Segmento menciona hoy sin rangos horarios → asumimos abierto
+    if (!hayRangos) return true;
+  }
+
   return false;
 }
 
@@ -737,7 +819,7 @@ function diaScore(h: HorarioMisa): number {
   return h.esVigilia ? idx + 0.5 : idx; // Vigilia justo después del sábado ordinario
 }
 
-export type IglesiaConHorarios = IglesiaBusqueda & { horarios: HorarioMisa[] };
+export type IglesiaConHorarios = IglesiaBusqueda & { horarios: HorarioMisa[]; openingHours?: string };
 
 // The misas.org API filters masses by the day-of-week of the queried date.
 // To get a complete weekly schedule we query all 7 days in parallel and merge.
@@ -745,7 +827,7 @@ async function fetchMisasOrgDay(
   lat: number, lng: number, dateStr: string,
 ): Promise<MisasOrgChurch[]> {
   try {
-    const url = `${MISAS_ORG}/api/parishsearch?sortbypos=[${lng},${lat},200]&country=es&date=${dateStr}&masses=1`;
+    const url = `${MISAS_ORG}/api/parishsearch?sortbypos=[${lng},${lat},1000]&country=es&date=${dateStr}&masses=1`;
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), 10_000);
     const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" }, signal: ac.signal });
@@ -813,6 +895,7 @@ export async function searchChurchesMisasOrg(
           lat: chLat,
           lng: chLng,
           horarios: parseMisasOrgMasses(ch.allMass),
+          openingHours: ch.open ?? undefined,
         };
       })
       .filter((ig): ig is IglesiaConHorarios => ig !== null);
@@ -823,9 +906,11 @@ export async function searchChurchesMisasOrg(
     const ahora = new Date();
     for (const ig of iglesias) {
       if (ig.horarios.length > 0) {
+        const numId = parseInt(ig.id.slice("misas:".length), 10);
         saveIglesia({
           id: ig.id, nombre: ig.nombre, direccion: ig.direccion,
           lat: ig.lat, lng: ig.lng, telefono: null, web: null,
+          openingHours: churchMap.get(numId)?.open ?? null,
           horarios: ig.horarios, updatedAt: ahora,
         }).catch(() => {});
       }
@@ -871,8 +956,9 @@ export async function getChurchDetails(
           direccion: local.direccion,
           lat: local.lat,
           lng: local.lng,
-          telefono: local.telefono ?? undefined,
-          web: local.web ?? undefined,
+          telefono:     local.telefono ?? undefined,
+          web:          local.web ?? undefined,
+          openingHours: local.openingHours ?? undefined,
           horarios: horariosCached,
           fotosRefs: [],
         };
@@ -949,10 +1035,11 @@ export async function getChurchDetails(
       ].filter(Boolean).join(", "),
       lat,
       lng,
-      telefono: tags.phone ?? tags["contact:phone"],
-      web: tags.website ?? tags["contact:website"] ?? tags["contact:url"],
+      telefono:     tags.phone ?? tags["contact:phone"],
+      web:          tags.website ?? tags["contact:website"] ?? tags["contact:url"],
+      openingHours: tags.opening_hours,
       horarios,
-      fotosRefs: [],
+      fotosRefs:    [],
       image,
     };
 
@@ -960,15 +1047,16 @@ export async function getChurchDetails(
 
     // Persistir en BD local en background (no bloquea el retorno al caller)
     saveIglesia({
-      id: detalle.id,
-      nombre: detalle.nombre,
-      direccion: detalle.direccion,
-      lat: detalle.lat,
-      lng: detalle.lng,
-      telefono: detalle.telefono ?? null,
-      web: detalle.web ?? null,
-      horarios: detalle.horarios,
-      updatedAt: new Date(),
+      id:           detalle.id,
+      nombre:       detalle.nombre,
+      direccion:    detalle.direccion,
+      lat:          detalle.lat,
+      lng:          detalle.lng,
+      telefono:     detalle.telefono ?? null,
+      web:          detalle.web ?? null,
+      openingHours: detalle.openingHours ?? null,
+      horarios:     detalle.horarios,
+      updatedAt:    new Date(),
     }).catch(() => { /* ignorar errores de escritura en BD */ });
 
     return detalle;

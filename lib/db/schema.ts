@@ -36,8 +36,9 @@ export const iglesias = sqliteTable("iglesias", {
   direccion: text("direccion").notNull(),
   lat: real("lat").notNull(),
   lng: real("lng").notNull(),
-  telefono: text("telefono"),
-  web: text("web"),
+  telefono:     text("telefono"),
+  web:          text("web"),
+  openingHours: text("opening_hours"),
   /** JSON serializado: HorarioMisa[] */
   horarios: text("horarios", { mode: "json" })
     .$type<HorarioMisa[]>()

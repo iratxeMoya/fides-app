@@ -27,6 +27,14 @@ const DARK_MAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/st
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function formatearOpeningHours(raw: string): string {
+  return raw
+    .replace(/\bMo\b/g, "Lun").replace(/\bTu\b/g, "Mar").replace(/\bWe\b/g, "Mié")
+    .replace(/\bTh\b/g, "Jue").replace(/\bFr\b/g, "Vie").replace(/\bSa\b/g, "Sáb")
+    .replace(/\bSu\b/g, "Dom").replace(/\bPH\b/g, "Festivos").replace(/\boff\b/gi, "cerrado")
+    .split(";").map((s) => s.trim()).join("\n");
+}
+
 function serializarHorarios(horarios: HorarioMisa[]): string {
   const ORDEN = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
   return ORDEN
@@ -155,7 +163,7 @@ export default function IglesiaDetalleScreen() {
 
       {/* ── Contenido ── */}
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
 
@@ -280,41 +288,73 @@ export default function IglesiaDetalleScreen() {
           )}
         </View>
 
-        {/* Contacto */}
-        {!cargando && detalle && (detalle.telefono || detalle.web) && (
+        {/* Horario de apertura + Contacto */}
+        {detalle && !cargando && (
           <>
+            {/* Horario de apertura */}
             <View
-              style={{ height: 1, backgroundColor: "#1A1A1A", marginHorizontal: 20, marginVertical: 20 }}
+              style={{ height: 1, backgroundColor: "#2A2A2A", marginHorizontal: 20, marginVertical: 20 }}
             />
             <View style={{ paddingHorizontal: 20 }}>
               <Text
                 style={{
                   fontFamily:    "Inter_500Medium",
                   fontSize:      10,
-                  color:         "#666666",
+                  color:         "#888888",
                   letterSpacing: 2,
                   textTransform: "uppercase",
-                  marginBottom:  4,
+                  marginBottom:  10,
                 }}
               >
-                Contacto
+                Horario de apertura
               </Text>
-
-              {detalle.telefono && (
-                <FilaContacto
-                  icono="call-outline"
-                  texto={detalle.telefono}
-                  onPress={() => Linking.openURL(`tel:${detalle.telefono}`)}
-                />
-              )}
-              {detalle.web && (
-                <FilaContacto
-                  icono="globe-outline"
-                  texto={detalle.web.replace(/^https?:\/\//, "")}
-                  onPress={() => Linking.openURL(detalle.web!)}
-                />
+              {detalle.openingHours ? (
+                <Text style={{ fontFamily: "Inter_400Regular", fontSize: 13, color: "#CCCCCC", lineHeight: 22 }}>
+                  {formatearOpeningHours(detalle.openingHours)}
+                </Text>
+              ) : (
+                <Text style={{ fontFamily: "Inter_400Regular", fontSize: 13, color: "#888888" }}>
+                  No disponemos de esta información
+                </Text>
               )}
             </View>
+
+            {/* Contacto */}
+            {(detalle.telefono || detalle.web) && (
+              <>
+                <View
+                  style={{ height: 1, backgroundColor: "#2A2A2A", marginHorizontal: 20, marginVertical: 20 }}
+                />
+                <View style={{ paddingHorizontal: 20 }}>
+                  <Text
+                    style={{
+                      fontFamily:    "Inter_500Medium",
+                      fontSize:      10,
+                      color:         "#888888",
+                      letterSpacing: 2,
+                      textTransform: "uppercase",
+                      marginBottom:  4,
+                    }}
+                  >
+                    Contacto
+                  </Text>
+                  {detalle.telefono && (
+                    <FilaContacto
+                      icono="call-outline"
+                      texto={detalle.telefono}
+                      onPress={() => Linking.openURL(`tel:${detalle.telefono}`)}
+                    />
+                  )}
+                  {detalle.web && (
+                    <FilaContacto
+                      icono="globe-outline"
+                      texto={detalle.web.replace(/^https?:\/\//, "")}
+                      onPress={() => Linking.openURL(detalle.web!)}
+                    />
+                  )}
+                </View>
+              </>
+            )}
           </>
         )}
 

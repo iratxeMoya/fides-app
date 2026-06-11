@@ -44,7 +44,8 @@
       "PowerShell(npm uninstall -g expo-cli 2>&1)",
       "PowerShell(Remove-Item \"C:\\\\Users\\\\iratx\\\\Documents\\\\PROYECTOS\\\\fides-app\\\\node_modules\\\\.bin\\\\.acorn-XejfmnLH\" -Force -ErrorAction SilentlyContinue; Write-Host \"Deleted. Exit: $LASTEXITCODE\")",
       "PowerShell(Set-Location \"c:\\\\Users\\\\iratx\\\\Documents\\\\PROYECTOS\\\\fides-app\"; node node_modules/typescript/bin/tsc --noEmit --skipLibCheck 2>&1 | Where-Object { $_ -match \"LecturaDelDiaTab\" } | Out-String)",
-      "PowerShell(Set-Location \"c:\\\\Users\\\\iratx\\\\Documents\\\\PROYECTOS\\\\fides-app\"; node node_modules/typescript/bin/tsc --noEmit --skipLibCheck 2>&1 | Where-Object { $_ -match \"LecturaDelDiaTab|nim\\\\.ts\" } | Out-String)"
+      "PowerShell(Set-Location \"c:\\\\Users\\\\iratx\\\\Documents\\\\PROYECTOS\\\\fides-app\"; node node_modules/typescript/bin/tsc --noEmit --skipLibCheck 2>&1 | Where-Object { $_ -match \"LecturaDelDiaTab|nim\\\\.ts\" } | Out-String)",
+      "PowerShell(\\(Get-Item \"c:\\\\Users\\\\iratx\\\\Documents\\\\PROYECTOS\\\\fides-app\\\\app\\\\iglesia\\\\[id].tsx\"\\).LastWriteTime)"
     ]
   }
 }

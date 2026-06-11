@@ -14,6 +14,7 @@ sqlite.execSync(`
     lng REAL NOT NULL,
     telefono TEXT,
     web TEXT,
+    opening_hours TEXT,
     horarios TEXT NOT NULL DEFAULT '[]',
     updated_at INTEGER
   );
@@ -51,5 +52,12 @@ sqlite.execSync(`
   CREATE INDEX IF NOT EXISTS idx_chat_mensajes_lectura_fecha
     ON chat_mensajes (lectura_fecha);
 `);
+
+// Add columns introduced after the initial release (safe to run on existing DBs)
+try {
+  sqlite.execSync(`ALTER TABLE iglesias ADD COLUMN opening_hours TEXT;`);
+  // Invalidate all cached rows so they re-fetch from OSM and populate opening_hours
+  sqlite.execSync(`UPDATE iglesias SET updated_at = 0 WHERE opening_hours IS NULL;`);
+} catch { /* column already exists — no action needed */ }
 
 export const db = drizzle(sqlite, { schema });

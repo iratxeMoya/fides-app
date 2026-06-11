@@ -6,15 +6,16 @@ import type { HorarioMisa } from "@/lib/db/schema";
 import { HorarioSemana } from "./HorarioSemana";
 
 export type IglesiaMapaItem = {
-  id:              string;
-  nombre:          string;
-  direccion:       string;
-  lat:             number;
-  lng:             number;
-  distanciaKm:     number;
-  horarios:        HorarioMisa[];
-  proximaMisa:     string | null;
+  id:               string;
+  nombre:           string;
+  direccion:        string;
+  lat:              number;
+  lng:              number;
+  distanciaKm:      number;
+  horarios:         HorarioMisa[];
+  proximaMisa:      string | null;
   detallesCargados: boolean;
+  openingHours?:    string;
 };
 
 type IglesiaListCardProps = {

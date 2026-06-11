@@ -27,6 +27,14 @@ const DARK_MAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/st
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function formatearOpeningHours(raw: string): string {
+  return raw
+    .replace(/\bMo\b/g, "Lun").replace(/\bTu\b/g, "Mar").replace(/\bWe\b/g, "Mié")
+    .replace(/\bTh\b/g, "Jue").replace(/\bFr\b/g, "Vie").replace(/\bSa\b/g, "Sáb")
+    .replace(/\bSu\b/g, "Dom").replace(/\bPH\b/g, "Festivos").replace(/\boff\b/gi, "cerrado")
+    .split(";").map((s) => s.trim()).join("\n");
+}
+
 function serializarHorarios(horarios: HorarioMisa[]): string {
   const ORDEN = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
   return ORDEN
@@ -272,6 +280,38 @@ export default function IglesiaDetalleScreen() {
             </Text>
           )}
         </View>
+
+        {/* Horario de apertura */}
+        {!cargando && detalle && (
+          <>
+            <View
+              style={{ height: 1, backgroundColor: "#1A1A1A", marginHorizontal: 20, marginVertical: 20 }}
+            />
+            <View style={{ paddingHorizontal: 20 }}>
+              <Text
+                style={{
+                  fontFamily:    "Inter_500Medium",
+                  fontSize:      10,
+                  color:         ACCENT,
+                  letterSpacing: 2,
+                  textTransform: "uppercase",
+                  marginBottom:  4,
+                }}
+              >
+                Horario de apertura
+              </Text>
+              {detalle.openingHours ? (
+                <Text style={{ fontFamily: "Inter_400Regular", fontSize: 13, color: "#CCCCCC", lineHeight: 22 }}>
+                  {formatearOpeningHours(detalle.openingHours)}
+                </Text>
+              ) : (
+                <Text style={{ fontFamily: "Inter_400Regular", fontSize: 13, color: "#555555" }}>
+                  No disponemos de esta información
+                </Text>
+              )}
+            </View>
+          </>
+        )}
 
         {/* Contacto */}
         {!cargando && detalle && (detalle.telefono || detalle.web) && (

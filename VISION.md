@@ -40,7 +40,7 @@ Católico practicante hispanohablante, 25–55 años, con smartphone. No necesar
 
 ---
 
-## Estado actual — v1.2.7
+## Estado actual — v2.0.2
 
 ### Pantallas
 
@@ -55,14 +55,16 @@ Pantalla principal con scroll vertical y animaciones en cascada. Seis secciones:
 6. **Enciende una vela** — Sección de donación voluntaria vía Bizum. Abre un bottom sheet con el número, botón de compartir y descripción.
 
 #### Mapa de iglesias
-Mapa interactivo oscuro (MapLibre + CARTO) centrado en la ubicación del usuario. Bottom sheet con lista de iglesias cercanas en un radio de 5 km. Búsqueda por texto (Nominatim + OSM REST API). La iglesia seleccionada se resalta en el mapa y muestra el horario semanal completo. El botón "Más información →" al pie del horario expandido abre la pantalla de detalle de iglesia.
+Mapa interactivo oscuro (MapLibre + CARTO) centrado en la ubicación del usuario. Bottom sheet con lista de iglesias cercanas en un radio de 1,5 km. Búsqueda por texto (Nominatim + OSM REST API). La iglesia seleccionada se resalta en el mapa y muestra el horario semanal completo. El botón "Más información →" al pie del horario expandido abre la pantalla de detalle de iglesia.
 
-La fuente primaria de horarios es **misas.org** (`/api/parishsearch`). Para obtener el calendario completo — el API filtra por día de la semana del `date` pasado — se hacen **7 llamadas paralelas** (una por cada día de la semana siguiente) y se fusionan los resultados, deduplicando por `(hora, días)`. El resultado es el horario semanal completo desde la carga inicial, sin necesidad de consultas adicionales al seleccionar una iglesia.
+La fuente primaria de horarios es **misas.org** (`/api/parishsearch`, hasta 1000 resultados). Para obtener el calendario completo — el API filtra por día de la semana del `date` pasado — se hacen **7 llamadas paralelas** (una por cada día de la semana siguiente) y se fusionan los resultados, deduplicando por `(hora, días)`. El resultado es el horario semanal completo desde la carga inicial, sin necesidad de consultas adicionales al seleccionar una iglesia.
 
 Cuando una iglesia no tiene domingo en misas.org, se activa un fallback a **buscarmisas.es**: primero se prueban slugs directos derivados del nombre; si fallan, se descarga la página de ciudad y se busca la iglesia por solapamiento de palabras significativas.
 
+**Panel de filtros** — Icono `options-outline` junto al buscador despliega un panel con cuatro filtros combinables: *Con horario de apertura* (solo iglesias con campo `open` en misas.org u OSM), *Abierta ahora* (evalúa el horario de apertura en tiempo real con `isOpenNow`), selector de día de la semana (Lun–Dom) y franja horaria (Mañana / Tarde / Noche). Los filtros se aplican sobre `iglesiasFiltradas` con `useMemo`. `isOpenNow` soporta tanto formato OSM (`Mo-Fr 09:00-18:00; Sa 10:00-14:00`) como texto libre en español de misas.org (`Lunes a viernes 9:00 a 14:00`, `8:00-21:00`, `Abierto todo el día`).
+
 #### Detalle de iglesia *(Stack anidado dentro del tab Mapa)*
-Pantalla accesible desde "Más información →" en la card expandida del mapa. La tab bar permanece visible. Muestra: mini-mapa CARTO dark centrado en la iglesia (o foto si la iglesia tiene tag `image`/`wikimedia_commons` en OSM), nombre en Cormorant, dirección, horario semanal completo, y sección de contacto con teléfono y web si están disponibles. Al pie, botón fijo "¿Horario incorrecto? Repórtalo" que abre `mailto:` prefilled con nombre, dirección e ID de la iglesia y el horario actual serializado.
+Pantalla accesible desde "Más información →" en la card expandida del mapa. La tab bar permanece visible. Muestra: mini-mapa CARTO dark centrado en la iglesia (o foto si la iglesia tiene tag `image`/`wikimedia_commons` en OSM), nombre en Cormorant, dirección, horario semanal completo, horario de apertura (campo `open` de misas.org u `opening_hours` de OSM, formateado en español), y sección de contacto con teléfono y web si están disponibles. Al pie, botón fijo "¿Horario incorrecto? Repórtalo" que abre `mailto:` prefilled con nombre, dirección e ID de la iglesia y el horario actual serializado.
 
 #### Lectura
 Cuatro pestañas:
@@ -124,8 +126,8 @@ Pantalla `app/calendario.tsx` accesible desde el CTA "Ver calendario →" en la 
 ### 4. ~~Biblia completa navegable~~ ✓ *Implementado en v1.2.4*
 Tab "Biblia" dentro de la pantalla Lectura. Tres vistas con navegación interna (sin rutas Stack): lista de 73 libros (AT + NT) con buscador que ignora tildes y mayúsculas, grid de capítulos (7 columnas) con dot rojo para capítulos leídos, y lector de capítulo con navegación por gestos (swipe izquierda/derecha) y botones `< >`. Al final de cada capítulo: botón "Marcar como leído" que persiste en `bibliaStore` (Zustand + AsyncStorage). En la lista de libros se muestra el progreso `X/Y` o `✓` cuando el libro está completo. El texto bíblico viene de `bible.helloao.org/api/spa_blm` (misma API que las lecturas del día, traducción BLM, incluye deuterocanónicos).
 
-### 5. ~~Más información sobre iglesias~~ ✓ *Implementado en v1.2.5*
-Pantalla de detalle de iglesia accesible desde "Más información →" en la card expandida del mapa. Muestra nombre, dirección, mini-mapa de ubicación (o foto si está en OSM), horario semanal de misas, contacto (teléfono/web) y botón fijo "¿Horario incorrecto? Repórtalo" con mailto prefilled. La tab bar permanece visible (Stack anidado dentro del tab Mapa). Pendiente para iteración futura: horarios de hora santa y confesiones (requiere identificar fuente de datos).
+### 5. ~~Más información sobre iglesias~~ ✓ *Implementado en v1.2.5 · Ampliado en v2.0.2*
+Pantalla de detalle de iglesia accesible desde "Más información →" en la card expandida del mapa. Muestra nombre, dirección, mini-mapa de ubicación (o foto si está en OSM), horario semanal de misas, horario de apertura (misas.org `open` u OSM `opening_hours`), contacto (teléfono/web) y botón fijo "¿Horario incorrecto? Repórtalo" con mailto prefilled. La tab bar permanece visible (Stack anidado dentro del tab Mapa). En v2.0.2 se añadió el panel de filtros en el mapa con cuatro criterios combinables (horario de apertura, abierta ahora, día y franja). Pendiente para iteración futura: horarios de hora santa y confesiones (requiere identificar fuente de datos).
 
 ### 6. Integración de IA con NVIDIA NIM
 
@@ -138,5 +140,12 @@ En la pantalla "Del día" (tab Lectura), selector de dos modos tras el texto: **
 #### ~~6.3. Recomendaciones de lectura~~ ✓ *Implementado en v1.2.7*
 En la pantalla "Del día", sección "Para profundizar" tras el evangelio: NIM genera 2-3 pasajes bíblicos relacionados con el texto del día, con una frase motivadora cada uno. Al pulsar una card se abre directamente el capítulo correspondiente en el lector bíblico (tab Biblia). Caché 24 h por fecha. Reintentos silenciosos en caso de rate limit; botón "Reintentar" visible si la llamada falla.
 
-### 7. Comunidad *(v3.0)*
-Registro y login de usuarios. Blog general de comunidad más subblogs temáticos o parroquiales abiertos al público — cualquiera puede unirse a uno o varios. Moderación automática por IA que filtra mensajes hirientes, desinformación y malas praxis antes de la publicación. Cada subforo cuenta además con un moderador humano como último recurso. La identidad de la plataforma es la misma que la app: recogida, sin engagement artificial, orientada a la reflexión compartida.
+## Proximos pasos
+
+### 1. Cambio de mail (a fides@gmail.com)
+
+### 2. Cambio de metodo de pago -> manera mas anonima para mi?
+
+No quiero que cualquiera pueda tener mi telefono, quiero buscar una manera mejor, que no tenga comisiones (por politica de empresa, el dinero ha de ir integramente a la app, sin intermediarios a ser posible)
+
+### 3. Publicacion de la app en play store (por ahora solo android. Si obtenemos 90€ -> pasamos a app store)

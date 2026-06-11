@@ -25,12 +25,15 @@ export async function saveIglesia(data: IglesiaInsert): Promise<string> {
     .onConflictDoUpdate({
       target: iglesias.id,
       set: {
-        nombre:    data.nombre,
-        direccion: data.direccion,
-        lat:       data.lat,
-        lng:       data.lng,
-        horarios:  data.horarios,
-        updatedAt: data.updatedAt,
+        nombre:       data.nombre,
+        direccion:    data.direccion,
+        lat:          data.lat,
+        lng:          data.lng,
+        telefono:     data.telefono,
+        web:          data.web,
+        openingHours: data.openingHours,
+        horarios:     data.horarios,
+        updatedAt:    data.updatedAt,
       },
     });
   return data.id;
