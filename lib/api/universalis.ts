@@ -66,6 +66,10 @@ export function normalizeRef(source: string): string {
   // Psalm LXX(MT) → MT: "Psalm 49(50)" → "Psalm 50"
   ref = ref.replace(/^(Psalm\s+)\d+\((\d+)\)/, "$1$2");
 
+  // Universalis usa ". " como separador de rangos discontinuos: "2 Kings 11:1-4. 9-18. 20"
+  // → convertir a comas para que parseAllRanges pueda dividirlos correctamente
+  ref = ref.replace(/\.\s+(\d)/g, ", $1");
+
   return ref.trim();
 }
 

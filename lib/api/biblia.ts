@@ -268,7 +268,7 @@ async function getLecturaDelDiaFallback(
     const gospelRef = refData.readings?.gospel;
     if (!gospelRef) throw new Error("La respuesta no contiene el Evangelio del día");
 
-    const gospelText = await fetchPassageText(gospelRef);
+    const gospelText = await fetchPassageTextMultiRange(gospelRef);
     if (!gospelText) throw new Error(`No se pudo obtener el texto del Evangelio: "${gospelRef}"`);
 
     const firstRef  = refData.readings?.firstReading;
@@ -276,9 +276,9 @@ async function getLecturaDelDiaFallback(
     const secondRef = refData.readings?.secondReading;
 
     const [firstText, psalmText, secondText] = await Promise.all([
-      firstRef  ? fetchPassageText(firstRef).catch(() => null)          : Promise.resolve(null),
-      psalmRef  ? fetchPassageTextMultiRange(psalmRef).catch(() => null) : Promise.resolve(null),
-      secondRef ? fetchPassageText(secondRef).catch(() => null)         : Promise.resolve(null),
+      firstRef  ? fetchPassageTextMultiRange(firstRef).catch(() => null)  : Promise.resolve(null),
+      psalmRef  ? fetchPassageTextMultiRange(psalmRef).catch(() => null)  : Promise.resolve(null),
+      secondRef ? fetchPassageTextMultiRange(secondRef).catch(() => null) : Promise.resolve(null),
     ]);
 
     const tiempo = calcularTiempoLiturgico(date);
@@ -326,10 +326,10 @@ export async function getLecturaDelDia(
 
     const univDayResult = await tryCatch(async () => {
       const [gospelText, firstText, psalmText, secondText] = await Promise.all([
-        fetchPassageText(readings.gospel.source),
-        readings.firstReading  ? fetchPassageText(readings.firstReading.source).catch(() => null)          : Promise.resolve(null),
-        readings.psalm         ? fetchPassageTextMultiRange(readings.psalm.source).catch(() => null)        : Promise.resolve(null),
-        readings.secondReading ? fetchPassageText(readings.secondReading.source).catch(() => null)         : Promise.resolve(null),
+        fetchPassageTextMultiRange(readings.gospel.source),
+        readings.firstReading  ? fetchPassageTextMultiRange(readings.firstReading.source).catch(() => null)  : Promise.resolve(null),
+        readings.psalm         ? fetchPassageTextMultiRange(readings.psalm.source).catch(() => null)         : Promise.resolve(null),
+        readings.secondReading ? fetchPassageTextMultiRange(readings.secondReading.source).catch(() => null) : Promise.resolve(null),
       ]);
 
       if (!gospelText) throw new Error(`Sin texto del Evangelio: "${readings.gospel.source}"`);
